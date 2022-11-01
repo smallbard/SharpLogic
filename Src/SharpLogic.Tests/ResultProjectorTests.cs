@@ -33,6 +33,60 @@ public class ResultProjectorTests
         Assert.AreEqual(5, i2);
         Assert.AreEqual("test", s2);
         Assert.AreEqual(2.0, d);
+
+        var v4 = new QueryVariable("Item4");
+        v4.Bind('c', stackFrame);
+        stackFrame.Registers[3].Value = v4;
+
+        var projectorTuple4 = new ResultProjector<(int, string, double, char)>(stackFrame);
+
+        var (i3, s3, d2, c) = projectorTuple4.Result;
+        Assert.AreEqual(5, i3);
+        Assert.AreEqual("test", s3);
+        Assert.AreEqual(2.0, d2);
+        Assert.AreEqual('c', c);
+
+        var v5 = new QueryVariable("Item5");
+        v5.Bind(1, stackFrame);
+        stackFrame.Registers[4].Value = v5;
+
+        var projectorTuple5 = new ResultProjector<(int, string, double, char, int)>(stackFrame);
+
+        var (i4, s4, d3, c2,i5) = projectorTuple5.Result;
+        Assert.AreEqual(5, i4);
+        Assert.AreEqual("test", s4);
+        Assert.AreEqual(2.0, d3);
+        Assert.AreEqual('c', c2);
+        Assert.AreEqual(1, i5);
+
+        var v6 = new QueryVariable("Item6");
+        v6.Bind(4, stackFrame);
+        stackFrame.Registers[5].Value = v6;
+
+        var projectorTuple6 = new ResultProjector<(int, string, double, char, int, int)>(stackFrame);
+
+        var (i6, s5, d4, c3, i7, i8) = projectorTuple6.Result;
+        Assert.AreEqual(5, i6);
+        Assert.AreEqual("test", s5);
+        Assert.AreEqual(2.0, d4);
+        Assert.AreEqual('c', c3);
+        Assert.AreEqual(1, i7);
+        Assert.AreEqual(4, i8);
+
+        var v7 = new QueryVariable("Item7");
+        v7.Bind(3, stackFrame);
+        stackFrame.Registers[6].Value = v7;
+
+        var projectorTuple7 = new ResultProjector<(int, string, double, char, int, int, int)>(stackFrame);
+
+        var (i9, s6, d5, c4, i10, i11, i12) = projectorTuple7.Result;
+        Assert.AreEqual(5, i9);
+        Assert.AreEqual("test", s6);
+        Assert.AreEqual(2.0, d5);
+        Assert.AreEqual('c', c4);
+        Assert.AreEqual(1, i10);
+        Assert.AreEqual(4, i11);
+        Assert.AreEqual(3, i12);
     }
 
     [TestMethod]
