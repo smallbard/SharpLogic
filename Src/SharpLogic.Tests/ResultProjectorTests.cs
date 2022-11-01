@@ -9,8 +9,6 @@ public class ResultProjectorTests
     public void ValueTupleProjection()
     {
         var stackFrame = new StackFrame(null);
-        var projectorTuple2 = new ResultProjector<(int, string)>(stackFrame);
-
         var v1 = new QueryVariable("Item1");
         v1.Bind(5, stackFrame);
         var v2 = new QueryVariable("Item2");
@@ -18,15 +16,18 @@ public class ResultProjectorTests
         stackFrame.Registers[0].Value = v2;
         stackFrame.Registers[1].Value = v1;
 
+        var projectorTuple2 = new ResultProjector<(int, string)>(stackFrame);
+
         var (i, s) = projectorTuple2.Result;
 
         Assert.AreEqual(5, i);
         Assert.AreEqual("test", s);
 
-        var projectorTuple3 = new ResultProjector<(int, string, double)>(stackFrame);
         var v3 = new QueryVariable("Item3");
         v3.Bind(2.0, stackFrame);
         stackFrame.Registers[2].Value = v3;
+
+        var projectorTuple3 = new ResultProjector<(int, string, double)>(stackFrame);
 
         var (i2, s2, d) = projectorTuple3.Result;
         Assert.AreEqual(5, i2);
@@ -38,12 +39,11 @@ public class ResultProjectorTests
     public void StringProjection()
     {
         var stackFrame = new StackFrame(null);
-        var projector = new ResultProjector<string>(stackFrame);
-
         var v = new QueryVariable("v");
         v.Bind("test", stackFrame);
-
         stackFrame.Registers[0].Value = v;
+
+        var projector = new ResultProjector<string>(stackFrame);
 
         Assert.AreEqual("test", projector.Result);
 
@@ -62,12 +62,11 @@ public class ResultProjectorTests
     public void PrimitiveProjection(object value)
     {
         var stackFrame = new StackFrame(null);
-        var projector = typeof(ResultProjector<>).MakeGenericType(value.GetType()).GetConstructors().First().Invoke(new[] { stackFrame });
-
         var v = new QueryVariable("v");
         v.Bind(value, stackFrame);
-
         stackFrame.Registers[0].Value = v;
+
+        var projector = typeof(ResultProjector<>).MakeGenericType(value.GetType()).GetConstructors().First().Invoke(new[] { stackFrame });
 
         Assert.AreEqual(value, projector.GetType().GetProperty("Result")!.GetValue(projector));
     }
@@ -76,12 +75,11 @@ public class ResultProjectorTests
     public void DecimalProjection()
     {
         var stackFrame = new StackFrame(null);
-        var projector = new ResultProjector<decimal>(stackFrame);
-
         var v = new QueryVariable("v");
         v.Bind(3.5m, stackFrame);
-
         stackFrame.Registers[0].Value = v;
+
+        var projector = new ResultProjector<decimal>(stackFrame);
 
         Assert.AreEqual(3.5m, projector.Result);
     }
@@ -90,16 +88,15 @@ public class ResultProjectorTests
     public void ClassProjection()
     {
         var stackFrame = new StackFrame(null);
-        var projector = new ResultProjector<TestClass>(stackFrame);
-
         var idVar = new QueryVariable(nameof(TestClass.Id));
         idVar.Bind(7, stackFrame);
-
         var nameVar = new QueryVariable(nameof(TestClass.Name));
         nameVar.Bind("myName", stackFrame);
 
         stackFrame.Registers[0].Value = idVar;
         stackFrame.Registers[1].Value = nameVar;
+
+        var projector = new ResultProjector<TestClass>(stackFrame);
 
         var r = projector.Result;
         Assert.IsNotNull(r);

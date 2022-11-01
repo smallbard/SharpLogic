@@ -170,6 +170,5 @@ Console.WriteLine(query.First());
 ## Remaining tasks
 
 - Predicates asserta and assertz
-- Optimize ResultProjector : reduce boxing, remove use of Reflection.
 - Optimizations : clause indexing, last call optimization, ...
 - More predicates!
