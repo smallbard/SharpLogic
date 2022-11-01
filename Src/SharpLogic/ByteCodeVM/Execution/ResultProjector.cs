@@ -4,12 +4,12 @@ namespace SharpLogic.ByteCodeVM.Execution;
 
 public class ResultProjector<TResult>
 {
-    private readonly Environment _rootEnvironment;
+    private readonly StackFrame _rootEnvironment;
 
-    public ResultProjector(Environment currentEnvironment)
+    public ResultProjector(StackFrame currentEnvironment)
     {
         _rootEnvironment = currentEnvironment;
-        while(_rootEnvironment.PreviousEnvironment != null) _rootEnvironment = _rootEnvironment.PreviousEnvironment;
+        while(_rootEnvironment.PreviousStackFrame != null) _rootEnvironment = _rootEnvironment.PreviousStackFrame;
     }
 
     public TResult Result
@@ -27,7 +27,7 @@ public class ResultProjector<TResult>
 
                 for (var i = 0; i < fields.Length; i++)
                 {
-                    var variable = variables[fields[i].Name];
+                    if (!variables.TryGetValue(fields[i].Name, out var variable)) continue;
                     if (variable?.Value is ValueTuple<ReadOnlyMemory<byte>, Type> tup)
                         fields[i].SetValue(result, ValueConstants.GetRealValueConstant(tup));
                     else
@@ -38,7 +38,7 @@ public class ResultProjector<TResult>
             }
             else if (typeof(TResult) == typeof(string))
                 return (TResult)(object)_rootEnvironment.Registers.GetVariables().FirstOrDefault()?.Value?.ToString()!;
-            else if (typeof(TResult).IsPrimitive)
+            else if (typeof(TResult).IsPrimitive || typeof(TResult) == typeof(decimal))
             {
                 var variable = _rootEnvironment.Registers.GetVariables().FirstOrDefault();
                 if (variable?.Value is ValueTuple<ReadOnlyMemory<byte>, Type> tup)

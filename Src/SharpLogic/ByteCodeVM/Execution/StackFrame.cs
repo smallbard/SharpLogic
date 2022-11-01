@@ -1,15 +1,15 @@
 namespace SharpLogic.ByteCodeVM.Execution;
 
-public class Environment
+public class StackFrame
 {
-    public Environment(Environment? previousEnvironment)
+    public StackFrame(StackFrame? previousStackFrame)
     {
         Registers = new Registers();
-        PreviousEnvironment = previousEnvironment;
+        PreviousStackFrame = previousStackFrame;
         CP = int.MaxValue;
     }
 
-    public Environment? PreviousEnvironment { get; init; }
+    public StackFrame? PreviousStackFrame { get; init; }
 
     public Registers Registers { get; }
 

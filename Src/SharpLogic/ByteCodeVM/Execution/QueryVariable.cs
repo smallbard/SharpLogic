@@ -2,7 +2,7 @@ namespace SharpLogic.ByteCodeVM.Execution;
 
 public class QueryVariable
 {
-    private Environment? _bindEnvironment;
+    private StackFrame? _bindStackFrame;
 
     public QueryVariable(string name)
     {
@@ -13,20 +13,22 @@ public class QueryVariable
 
     public object? Value { get; private set; }
 
-    public bool IsBound => _bindEnvironment != null;
+    public bool IsBound => _bindStackFrame != null;
 
-    public void Bind(object? value, Environment currentEnvironment)
+    public void Bind(object? value, StackFrame currentStackFrame)
     {
+        if (IsBound) throw new SharpLogicException("Variable already bound.");
+
         Value = value;
-        _bindEnvironment = currentEnvironment;
+        _bindStackFrame = currentStackFrame;
     }
 
-    public void Unbind(Environment environment)
+    public void Unbind(StackFrame stackFrame)
     {
-        if (environment == _bindEnvironment)
+        if (stackFrame == _bindStackFrame)
         {
             Value = null;
-            _bindEnvironment = null;
+            _bindStackFrame = null;
         }
     }
 }
