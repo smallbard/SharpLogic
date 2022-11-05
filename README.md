@@ -113,14 +113,13 @@ Console.WriteLine(query.First());
 ### Is
 
 In Prolog, _is_ succeeds if the left operand is the value to which the right operand evaluates, and it is generally used with an unbound left operand.
-In Sharplogic, the assignment operator is the equivalent of _is_.
 
 ```csharp
 var vm = new Logic((t, p) =>
 {
     t.gcd((t.X, 0, t.X), p.Cut);
     t.gcd((0, t.X, t.X), p.Cut);
-    t.gcd((t.X, t.Y, t.D), t.X <= t.Y, p.Cut, t.Z = t.Y - t.X, t.gcd(t.X, t.Z, t.D));
+    t.gcd((t.X, t.Y, t.D), t.X <= t.Y, p.Cut, p.Is(t.Z, t.Y - t.X), t.gcd(t.X, t.Z, t.D));
     t.gcd((t.X, t.Y, t.D), t.gcd(t.Y, t.X, t.D));
 });
 
