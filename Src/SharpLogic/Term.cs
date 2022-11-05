@@ -7,10 +7,16 @@ public class Term : TermValue
     {
         Functor = functor;
         Args = args;
-        Value = this;
+
+        foreach (var arg in Args) arg.Parent = this;
     } 
 
     public string Functor { get; init; }
 
     public TermValue[] Args{ get; init; }
+
+    public override string ToString()
+    {
+        return $"{Functor}/{Args.Length}";
+    }
 }

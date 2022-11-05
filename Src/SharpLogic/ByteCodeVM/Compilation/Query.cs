@@ -6,38 +6,28 @@ using System.Security.Cryptography;
 
 using SharpLogic.ByteCodeVM.Execution;
 
-namespace SharpLogic.ByteCodeVM.Definition;
+namespace SharpLogic.ByteCodeVM.Compilation;
 
-public class Query<T> : IQuery<T>
+public class Query<T> : IEnumerable<T>
 {
     private readonly ValueConstants _valueConstants;
     private readonly ManagedConstants _managedConstants;
-    private readonly FactAndRule _factAndRule;
-    private readonly List<Term> _goals;
+    private readonly (ByteCodeContainer Code,  GetOffsetsDelegate GetOffsets) _factAndRule;
     private readonly ByteCodeContainer _queryCode;
-    private readonly PredicateTranslator _predicateTranslator;
     private readonly Dictionary<string, byte> _variables;
 
-    public Query(ValueConstants valueConstants, ManagedConstants managedConstants, FactAndRule factAndRule)
+    public Query(ValueConstants valueConstants, ManagedConstants managedConstants, (ByteCodeContainer Code,  GetOffsetsDelegate GetOffsets) factAndRule, ByteCodeContainer queryCode)
     {
         _valueConstants = valueConstants;
         _managedConstants = managedConstants;
         _factAndRule = factAndRule;
-        _goals = new List<Term>();
-        _queryCode = new ByteCodeContainer();
+        _queryCode = queryCode;
         _variables = new Dictionary<string, byte>();
-
-        _predicateTranslator = new PredicateTranslator(_queryCode, (Span<byte> byte5, TermValue[] head, Dictionary<string, byte> freeVariables, Term goal, ref byte freeRegister) => AppendGoal(byte5, goal, ref freeRegister), Array.Empty<TermValue>(), managedConstants, valueConstants, _variables);
-    }
-
-    public void AddTerm(Term t)
-    {
-        _goals.Add(t);
     }
 
     public IEnumerator<T> GetEnumerator()
     {
-        if (_goals.Count == 0) return Enumerable.Empty<T>().GetEnumerator();
+        if (_queryCode.CodeLength == 0) return Enumerable.Empty<T>().GetEnumerator();
         return CompileAndExecute();
     }
 
@@ -48,7 +38,7 @@ public class Query<T> : IQuery<T>
 
     private ByteCodeExecutor<T> CompileAndExecute()
     {
-        Span<byte> byte5 = stackalloc byte[5];
+        /*Span<byte> byte5 = stackalloc byte[5];
         byte freeRegister = 0;
 
         foreach (var variable in _goals.SelectMany(g => g.Args).Where(arg => arg is Variable).Select(arg => (Variable)arg))
@@ -70,12 +60,12 @@ public class Query<T> : IQuery<T>
                 AppendGoal(byte5, goal, ref freeRegister);
         }
 
-        _queryCode.AppendOpCode(OpCode.Proceed, Span<byte>.Empty);
+        _queryCode.AppendOpCode(OpCode.Proceed, Span<byte>.Empty);*/
 
         return new ByteCodeExecutor<T>(_valueConstants, _managedConstants, _factAndRule, _queryCode.Code);
     }
 
-    private void AppendGoal(Span<byte> byte5, Term goal, ref byte freeRegister)
+    /*private void AppendGoal(Span<byte> byte5, Term goal, ref byte freeRegister)
     {
         _queryCode.AppendOpCode(OpCode.NewEnvironment, Span<byte>.Empty);
 
@@ -94,5 +84,5 @@ public class Query<T> : IQuery<T>
         var byte4 = byte5.Slice(0, 4);
         ByteCodeGen.WriteInt(byte4, _managedConstants.AddConstant(goal.Functor));
         _queryCode.AppendOpCode(OpCode.Goal, byte4);
-    }
+    }*/
 }

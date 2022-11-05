@@ -1,41 +1,50 @@
 using System.Reflection;
+using System.Reflection.Metadata;
 using System.Runtime.CompilerServices;
 using SharpLogic.ByteCodeVM;
-using SharpLogic.ByteCodeVM.Definition;
+using SharpLogic.ByteCodeVM.Compilation;
 
 namespace SharpLogic;
 
 public class Logic
 {
-    private readonly FactAndRule _factsAndRules;
     private readonly ValueConstants _valueConstants = new ValueConstants(null);
     private readonly ManagedConstants _managedConstants = new ManagedConstants(null);
+    private readonly Compiler _compiler = new Compiler();
+    private (ByteCodeContainer Code,  GetOffsetsDelegate GetOffsets) _factAndRule;
 
     public Logic(Action<dynamic, IPredicates> termBuilding)
     {
-        _factsAndRules = new FactAndRule(_valueConstants, _managedConstants);
-        var dtb = new DynamicTermBuilder(_factsAndRules, null);
+        var astBuilder = new ASTBuilder();
+        var dtb = new DynamicTermBuilder(astBuilder);
         termBuilding(dtb, dtb);
-        dtb.CreateRemainingFacts();
+
+        _factAndRule = _compiler.Compile(astBuilder.Terms, _valueConstants, _managedConstants);
     }
 
-    public IQuery<T> Query<T>(Action<dynamic, IPredicates> queryBuilder)
+    public Query<T> Query<T>(Action<dynamic, IPredicates> queryBuilder)
     {
-        var query = new Query<T>(new ValueConstants(_valueConstants), new ManagedConstants(_managedConstants), _factsAndRules);
-        var dtb = new DynamicTermBuilder(null, query.AddTerm);
+        var astBuilder = new ASTBuilder();
+        var dtb = new DynamicTermBuilder(astBuilder);
         queryBuilder(dtb, dtb);
-        dtb.CreateRemainingFacts();
 
-        return query;
+        return new Query<T>(
+            new ValueConstants(_valueConstants),
+            new ManagedConstants(_managedConstants),
+            _factAndRule,
+            _compiler.Compile(new[] { new Rule(string.Empty, Array.Empty<TermValue>(), astBuilder.Terms.ToArray()) }, _valueConstants, _managedConstants, true).Code);
     }
 
     public bool Any(Action<dynamic, IPredicates> queryBuilder)
     {
-        var query = new Query<object>(new ValueConstants(_valueConstants), new ManagedConstants(_managedConstants), _factsAndRules);
-        var dtb = new DynamicTermBuilder(null, query.AddTerm);
+        var astBuilder = new ASTBuilder();
+        var dtb = new DynamicTermBuilder(astBuilder);
         queryBuilder(dtb, dtb);
-        dtb.CreateRemainingFacts();
 
-        return query.Any();
+        return new Query<object>(
+            new ValueConstants(_valueConstants),
+            new ManagedConstants(_managedConstants),
+            _factAndRule,
+            _compiler.Compile(new[] { new Rule(string.Empty, Array.Empty<TermValue>(), astBuilder.Terms.ToArray()) }, _valueConstants, _managedConstants, true).Code).Any();
     }
 }

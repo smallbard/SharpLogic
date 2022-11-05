@@ -10,5 +10,9 @@ public interface IPredicates
 
     Predicate Not(Term t);
 
-    Predicate OfType<T>(TermValue tv);
+    Predicate OfType<T>(Variable v);
+
+    Predicate Is(Variable v, object value);
+
+    //Predicate Capture<T>(TermValue tv, Action<T> exec);
 }

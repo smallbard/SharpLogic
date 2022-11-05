@@ -70,7 +70,7 @@ public class PredicateTests
         {
             t.gcd((t.X, 0, t.X), p.Cut);
             t.gcd((0, t.X, t.X), p.Cut);
-            t.gcd((t.X, t.Y, t.D), t.X <= t.Y, p.Cut, t.Z = t.Y - t.X, t.gcd(t.X, t.Z, t.D));
+            t.gcd((t.X, t.Y, t.D), t.X <= t.Y, p.Cut, p.Is(t.Z, t.Y - t.X), t.gcd(t.X, t.Z, t.D));
             t.gcd((t.X, t.Y, t.D), t.gcd(t.Y, t.X, t.D));
         });
 
@@ -95,9 +95,9 @@ public class PredicateTests
     {
         var vm = new Logic((t, p) =>
         {
-            t.type((t.X, t.Y), p.OfType<int>(t.X), p.Cut, t.Y = "int!");
-            t.type((t.X, t.Y), p.OfType<string>(t.X), p.Cut, t.Y = "string!");
-            t.type((t.X, t.Y), t.Y = "unknown!");
+            t.type((t.X, t.Y), p.OfType<int>(t.X), p.Cut, p.Is(t.Y, "int!"));
+            t.type((t.X, t.Y), p.OfType<string>(t.X), p.Cut, p.Is(t.Y, "string!"));
+            t.type((t.X, t.Y), p.Is(t.Y, "unknown!"));
         });
 
         var query = vm.Query<string>((t, p) => t.type(5, t.X));
@@ -121,14 +121,14 @@ public class PredicateTests
     {
         var vm = new Logic((t, p) =>
         {
-            t.extract((t.X, t.Y), t.Y = t.X.Login);
+            t.extract((t.X, t.Y), p.Is(t.Y, t.X.Login));
         });
 
-        var query = vm.Query<string>((t, p) => t.extract(new User("test", 1), t.X));
+        var query = vm.Query<string>((t, p) => t.extract(new User("test", 1, true), t.X));
         var result = query.ToList();
         Assert.AreEqual(1, result.Count);
         Assert.AreEqual("test", result[0]);
     }
 
-    private record User(string Login, int Id);
+    private record User(string Login, int Id, bool IsActive);
 }

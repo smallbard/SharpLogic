@@ -9,7 +9,7 @@ using System.Reflection.Metadata;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-using SharpLogic.ByteCodeVM.Definition;
+using SharpLogic.ByteCodeVM.Compilation;
 
 namespace SharpLogic.ByteCodeVM.Execution;
 
@@ -53,7 +53,7 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
     private readonly OpCodeExecuteDelegate[] _opCodeExecutes;
     private readonly ValueConstants _valueConstants;
     private readonly ManagedConstants _managedConstants;
-    private readonly FactAndRule _factAndRule;
+    private readonly (ByteCodeContainer Code,  GetOffsetsDelegate GetOffsets) _factAndRule;
     private readonly ReadOnlyMemory<byte> _queryCode;
     private readonly List<StackFrame> _environment;
 
@@ -61,7 +61,7 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
     private bool _firstExecution = true;
     private bool _failed;
 
-    public ByteCodeExecutor(ValueConstants valueConstants, ManagedConstants managedConstants, FactAndRule factAndRule, ReadOnlyMemory<byte> queryCode)
+    public ByteCodeExecutor(ValueConstants valueConstants, ManagedConstants managedConstants, (ByteCodeContainer Code,  GetOffsetsDelegate GetOffsets) factAndRule, ReadOnlyMemory<byte> queryCode)
     {
         _opCodeExecutes = new OpCodeExecuteDelegate[]
         {
@@ -114,12 +114,12 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
 
         if (_firstExecution)
         {
-            var factAndRuleCode = _factAndRule.Code.Span;
+            var factAndRuleCode = _factAndRule.Code.Code.Span;
             Run(factAndRuleCode.Length, factAndRuleCode, _queryCode.Span);
             _firstExecution = false;
         }
         else if (TryBacktrack(out int p))
-            Run(p, _factAndRule.Code.Span, _queryCode.Span);
+            Run(p, _factAndRule.Code.Code.Span, _queryCode.Span);
         else
             return false;
 
@@ -386,7 +386,7 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
             _failed = true;
         else
         {
-            var v1 = GetRealValueInRegister(firstOperand) as System.IComparable;
+            var v1 = GetRealValueInRegister(firstOperand);
             if (v1 != null)
             {
                 var v2 = GetRealValueInRegister(secondOperand) as System.IComparable;
