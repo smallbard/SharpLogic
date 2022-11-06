@@ -26,6 +26,19 @@ internal class DynamicTermBuilder : DynamicObject, IPredicates
         return p;
     }
 
+    public ListPredicate Empty => new ListPredicate(nameof(Empty), Array.Empty<TermValue>());
+
+    public ListPredicate this[TermValue h, TermValue t] 
+    {
+        get
+        {
+            var p = new ListPredicate("HeadTail", new[] { h, t });
+            _astBuilder.AddTerm(p);
+
+            return p;
+        }
+    }
+
     public Predicate OfType<T>(Variable v)
     {
         var p = new Predicate(nameof(OfType), new[] { v, new TermValue(typeof(T).GetHashCode()) });

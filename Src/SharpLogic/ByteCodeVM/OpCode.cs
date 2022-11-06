@@ -10,6 +10,10 @@ public enum OpCode : byte
     UnTrue,         // Unify true in Px                                             Arg size : 1
     UnFalse,        // Unify false in Px                                            Arg size : 1
     UnNull,         // Unify null in Px                                             Arg size : 1
+    UnifyReg,       // Unify two Registers                                          Arg size : 2
+    UnifyEmpty,     // Unify empty List with Px                                     Arg size : 1
+    UnifyHead,      // Unify head list with register                                Arg size : 2
+    UnifyTail,      // Unify tail list with register                                Arg size : 2
 
     // Rule
     StackPxToAy,    // Store a register Px in a register Ay                         Arg size : 2
@@ -37,8 +41,7 @@ public enum OpCode : byte
     Modulus,
 
     Cut,
-
-    UnifyReg,       // Unify two Registers                                          Arg size : 2
+    
     NewVar,         // Declare a new variable in a register                         Arg size : 5
     OfType,         // Fail is variable is not of expected OfType                   Arg size : 5
     MbAccess,       // Access to a member of a type                                 Arg size : 6

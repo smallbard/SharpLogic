@@ -15,4 +15,8 @@ public interface IPredicates
     Predicate Is(Variable v, object value);
 
     //Predicate Capture<T>(TermValue tv, Action<T> exec);
+
+    ListPredicate this[TermValue h, TermValue t] { get; }
+
+    ListPredicate Empty { get; }
 }

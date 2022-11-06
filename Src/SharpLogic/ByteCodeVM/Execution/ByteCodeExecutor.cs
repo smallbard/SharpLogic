@@ -24,6 +24,11 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
         1, //UnTrue
         1, //UnFalse
         1, //UnNull
+        2, //UnifyReg
+        1, //UnifyEmpty
+        2, //UnifyHead
+        2, //UnifyTail
+
         2, //StackPxToAy
         0, //NewEnvironment
         4, //Goal
@@ -44,7 +49,6 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
         3, //Modulus
 
         0, //Cut
-        2, //UnifyReg
         5, //NewVar
         5, //OfType
         6, //MbAccess
@@ -72,6 +76,11 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
             UnTrue,
             UnFalse,
             UnNull,
+            UnifyReg,
+            UnifyEmpty,
+            UnifyHead,
+            UnifyTail,
+
             StackPxToAy,
             NewEnvironment,
             Goal,
@@ -90,7 +99,6 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
             Divide,
             Modulus,
             Cut,
-            UnifyReg,
             NewVar,
             OfType,
             MbAccess,
@@ -457,6 +465,80 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
             }
             else
                 Unify(firstRegister.Value, secondRegister);
+        }
+
+        p += 1 + arguments.Length;
+    }
+
+    private void UnifyEmpty(ReadOnlySpan<byte> arguments, ref int p)
+    {
+        var register = _currentStackFrame!.Registers[arguments[0]];
+        if (register.Type == RegisterValueType.Unbound || (register.Type == RegisterValueType.Variable && !((QueryVariable)register.Value!).IsBound))
+        {
+            _failed = true;
+            return;
+        }
+
+        var lst = GetRealValueInRegister(register);
+
+        if (lst is System.Collections.ICollection c)
+            _failed = c.Count > 0;
+        else if (lst is System.Collections.IEnumerable e)
+            _failed = e.GetEnumerator().MoveNext();
+
+        p += 1 + arguments.Length;
+    }
+    
+    private void UnifyHead(ReadOnlySpan<byte> arguments, ref int p)
+    {
+        var register = _currentStackFrame!.Registers[arguments[0]];
+        if (register.Type == RegisterValueType.Unbound || (register.Type == RegisterValueType.Variable && !((QueryVariable)register.Value!).IsBound))
+        {
+            _failed = true;
+            return;
+        }
+
+        var lst = GetRealValueInRegister(register);
+        if (lst is System.Collections.IEnumerable e)
+        {
+            var en = e.GetEnumerator();
+            if (!en.MoveNext())
+            {
+                _failed = true;
+                return;
+            }
+
+            var head = en.Current;
+            Unify(head, _currentStackFrame!.Registers[arguments[1]]);
+        }
+        else
+        {
+            _failed = true;
+            return;
+        }
+
+        p += 1 + arguments.Length;
+    }
+
+    private void UnifyTail(ReadOnlySpan<byte> arguments, ref int p)
+    {
+        var register = _currentStackFrame!.Registers[arguments[0]];
+        if (register.Type == RegisterValueType.Unbound || (register.Type == RegisterValueType.Variable && !((QueryVariable)register.Value!).IsBound))
+        {
+            _failed = true;
+            return;
+        }
+
+        var lst = GetRealValueInRegister(register);
+        if (lst is System.Collections.IEnumerable e)
+        {
+            var tail = typeof(Enumerable).GetMethod(nameof(Enumerable.Skip))!.MakeGenericMethod(lst.GetType().GetInterfaces().First(i => i.Name == "IEnumerable`1").GetGenericArguments()[0]).Invoke(null, new object?[] { lst, 1 });
+            Unify(tail, _currentStackFrame!.Registers[arguments[1]]);
+        }
+        else
+        {
+            _failed = true;
+            return;
         }
 
         p += 1 + arguments.Length;

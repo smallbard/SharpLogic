@@ -40,27 +40,39 @@ public class Compiler
         context.Head = r.Head;
         if (!context.InQuery) context.AddOffset(r.Functor, r.Head.Length);
 
-        // Unify head constants
+        context.FreeRegister = context.Head.Length;
+        context.FreeVariables = new Dictionary<string, byte>();
+
+        void DeclareVariable(Variable variable, ref CompilationContext context)
+        {
+            if (!context.FreeVariables.ContainsKey(variable.VariableName) && Array.IndexOf(context.Head, variable) == -1)
+            {
+                context.Code.AppendOpCode(OpCode.NewVar, WriteIntByte(context.Byte5, context.ManagedConstants.AddConstant(variable.VariableName),(byte)context.FreeRegister));
+                context.FreeVariables[variable.VariableName] = (byte)context.FreeRegister++;
+            }
+        }
+
+        // Unify head constants and list predicate
         for (var i = 0; i < context.Head.Length; i++)
             if (r.Head[i].GetType() == typeof(TermValue))
             {
                 var cr = CompileUnify(context.Head[i], (byte)i, context);
                 if (!cr.Succeed) return cr;
             }
+            else if (r.Head[i] is ListPredicate lp)
+            {
+                foreach (var variable in lp.Args.OfType<Variable>()) DeclareVariable(variable, ref context);
+
+                var cr = CompileListPredicate(lp, (byte)i, ref context);
+                if (!cr.Succeed) return cr;
+            }
+            else if (!(r.Head[i] is Variable))
+                return CompilationResult.Error($"Head element should be constant or variable, not {r.Head[i]}.");
 
         var goals = r.Args.OfType<Term>();
-
-        // Variable declarations
-        context.FreeVariables = new Dictionary<string, byte>();
-        context.FreeRegister = context.Head.Length;
-
         foreach (var variable in goals.SelectMany(g => g.Args).Where(arg => arg is Variable).Select(arg => (Variable)arg)
-            .Union(goals.SelectMany(g => g.Args).Where(arg => arg is Predicate p && p.Functor == "Assignment").Select(p => (Variable)((Predicate)p).Args[0]))) // because of dynamic cache, assignment is given instead of variable
-            if (!context.FreeVariables.ContainsKey(variable.VariableName) && Array.IndexOf(context.Head, variable) == -1)
-            {
-                context.Code.AppendOpCode(OpCode.NewVar, WriteIntByte(context.Byte5, context.ManagedConstants.AddConstant(variable.VariableName),(byte)context.FreeRegister));
-                context.FreeVariables[variable.VariableName] = (byte)context.FreeRegister++;
-            }
+            .Union(r.Head.OfType<ListPredicate>().SelectMany(p => p.Args.OfType<Variable>())))
+            DeclareVariable(variable, ref context);
 
         foreach (var goal in goals)
         {
@@ -145,7 +157,7 @@ public class Compiler
 
     private CompilationResult CompileFact(Term t, ref CompilationContext context)
     {
-        if (t.Args.Any(a => a is Variable)) // body less rule
+        if (t.Args.Any(a => a is Variable || a is ListPredicate)) // body less rule
             return CompileRule(new Rule(t.Functor, t.Args, Array.Empty<TermValue>()), ref context);
 
         context.AddOffset(t.Functor, t.Args.Length);
@@ -181,18 +193,70 @@ public class Compiler
         (false, _) => context.AppendOpCode(OpCode.UnRefCst, Slice(context.Byte5, (byte)cstIndex, rxIndex)),
     };
 
-    private CompilationResult CompilePredicate(Predicate p, ref CompilationContext context) => p.Functor switch
+    private CompilationResult CompilePredicate(Predicate p, ref CompilationContext context) => p switch
     {
-        nameof(IPredicates.Fail) => context.AppendOpCode(OpCode.Fail, Span<byte>.Empty),
-        nameof(IPredicates.Not) => CompileNot(p, ref context),
-        "GreaterThan" or "LessThan" or "GreaterThanOrEqual" or "LessThanOrEqual" or "Equal" or "NotEqual" or "Modulus" or "Add" or "Substract" or "Multiply" or "Divide" => CompileBinaryOperator(p, ref context),
-        nameof(IPredicates.Cut) => context.AppendOpCode(OpCode.Cut, Span<byte>.Empty),
-        nameof(IPredicates.Is) => CompileIs(p, ref context),
-        nameof(IPredicates.OfType) => CompileOfType(p, context),
-        "MemberAccess" => CompileMemberAccess(p, ref context),
+        ListPredicate lp => CompileListPredicate(lp, (byte)context.FreeRegister++, ref context),
+        { Functor: nameof(IPredicates.Fail) } => context.AppendOpCode(OpCode.Fail, Span<byte>.Empty),
+        { Functor: nameof(IPredicates.Not) } => CompileNot(p, ref context),
+        { Functor: "GreaterThan" or "LessThan" or "GreaterThanOrEqual" or "LessThanOrEqual" or "Equal" or "NotEqual" or "Modulus" or "Add" or "Substract" or "Multiply" or "Divide" } => CompileBinaryOperator(p, ref context),
+        { Functor: nameof(IPredicates.Cut) } => context.AppendOpCode(OpCode.Cut, Span<byte>.Empty),
+        { Functor: nameof(IPredicates.Is) } => CompileIs(p, ref context),
+        { Functor: nameof(IPredicates.OfType) } => CompileOfType(p, context),
+        { Functor: "MemberAccess" } => CompileMemberAccess(p, ref context),
 
         _ => CompilationResult.Error($"Unsupported predicate {p.Functor}.")
     };
+
+    private CompilationResult CompileListPredicate(ListPredicate p, byte rxIndex, ref CompilationContext context) => p switch
+    {
+        { Functor: nameof(IPredicates.Empty) } => CompileEmpty(p, rxIndex, context),
+        { Functor: "HeadTail" } => CompileHeadTail(p, ref context),
+        _ => CompilationResult.Error($"Unsupported list predicate {p.Functor}.")
+    };
+
+    private CompilationResult CompileEmpty(ListPredicate p, byte rxIndex, in CompilationContext context)
+    {
+        if (p.Parent is Rule) // head of rule
+            context.Code.AppendOpCode(OpCode.UnifyEmpty, Slice(context.Byte5, rxIndex));
+        else // goal argument
+            throw new NotImplementedException();
+
+        return CompilationResult.Success;
+    }
+
+    private CompilationResult CompileHeadTail(ListPredicate p, ref CompilationContext context)
+    {
+        if (!(p.Parent is Rule r && r.Head.Contains(p))) return CompilationResult.Error("Head an tail extraction should be in rule head.");
+
+        var opCodes = new[] { OpCode.UnifyHead, OpCode.UnifyTail };
+        var byte2 = context.Byte5.Slice(0, 2);
+        byte2[0] = (byte)Array.IndexOf(r.Head, p);
+
+        for (var i = 0; i < p.Args.Length; i++)
+        {
+            var arg = p.Args[i];
+            if (arg is Variable v)
+                byte2[1] = GetVariableRegIndex(v, context);
+            else if (arg is Predicate pArg)
+            {
+                var cr = CompilePredicate(pArg, ref context);
+                if (!cr.Succeed) return cr;
+
+                byte2[1] = (byte)(context.FreeRegister - 1);
+            }
+            else if (arg is Term)
+                return CompilationResult.Error($"Unsupported term {arg}.");
+            else
+            {
+                byte2[1] = (byte)context.FreeRegister++;
+                CompileUnify(arg, byte2[i], context);
+            }
+
+            context.Code.AppendOpCode(opCodes[i], byte2);
+        }
+
+        return CompilationResult.Success;
+    }
 
     private CompilationResult CompileNot(Predicate p, ref CompilationContext context)
     {

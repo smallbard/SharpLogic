@@ -6,6 +6,8 @@ public class Rule : Term
         : base(functor, args)
     {
         Head = head;
+
+        foreach (var arg in Head) arg.Parent = this;
     }
 
     public TermValue[] Head { get; }

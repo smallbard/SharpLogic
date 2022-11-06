@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using System.Security.Cryptography.X509Certificates;
 
 namespace SharpLogic;
 
@@ -16,7 +17,13 @@ public class ASTBuilder
 
     private void RemoveArguments(Term t)
     {
-        foreach (var arg in t.Args.Reverse())
+        RemoveArguments(t.Args);
+        if (t is Rule r) RemoveArguments(r.Head);
+    }
+
+    private void RemoveArguments(TermValue[] args)
+    {
+        foreach (var arg in args.Reverse())
         {
             if (_terms.Count > 0 && object.Equals(_terms[_terms.Count - 1], arg))
                 _terms.RemoveAt(_terms.Count - 1);
