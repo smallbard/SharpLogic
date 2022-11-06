@@ -130,5 +130,15 @@ public class PredicateTests
         Assert.AreEqual("test", result[0]);
     }
 
+    [DataTestMethod]
+    [DataRow(true)]
+    [DataRow(false)]
+    public void Equals(bool isActive)
+    {
+        var vm = new Logic((t, p) => t.ActiveUser(t.X, t.X.IsActive == true));
+        var query = vm.Query<int>((t, p) => t.ActiveUser(new User("test", 1, isActive)));
+        Assert.AreEqual(isActive, query.Any());
+    }
+
     private record User(string Login, int Id, bool IsActive);
 }

@@ -28,6 +28,7 @@ public class Compiler
     private CompilationResult Compile(TermValue tv, ref CompilationContext context) => tv switch
     {
         Rule r => CompileRule(r, ref context),
+        Term{Parent: null, Args: [Variable v, Term, ..]} t => CompileRule(new Rule(t.Functor, new [] { t.Args[0]}, t.Args.Skip(1).ToArray()), ref context),
         Term{Parent: null} t => CompileFact(t, ref context),
         Predicate p => CompilePredicate(p, ref context),        
         Term t => CompileGoal(t, context),
@@ -217,12 +218,12 @@ public class Compiler
             else if (arg is Predicate pArg)
             {
                 CompilePredicate(pArg, ref ctxOperand);
-                byte3[i] = (byte)(context.FreeRegister - 1);
+                byte3[i] = (byte)(ctxOperand.FreeRegister - 1);
             }
             else
             {
-                CompileUnify(arg, (byte)context.FreeRegister, ctxOperand);
-                byte3[i] = (byte)context.FreeRegister++;
+                CompileUnify(arg, (byte)ctxOperand.FreeRegister, ctxOperand);
+                byte3[i] = (byte)ctxOperand.FreeRegister++;
             }
         }
 

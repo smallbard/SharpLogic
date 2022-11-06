@@ -299,35 +299,35 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
 
     private void GreaterThan(ReadOnlySpan<byte> arguments, ref int p)
     {
-        CompareTo(arguments, ref p, c => c > 0);
+        CompareTo(arguments, ref p, (v1 , v2) => v1 != null && v1 is IComparable c1 && v2 != null && c1.CompareTo(v2) > 0);
     }
 
     private void LessThan(ReadOnlySpan<byte> arguments, ref int p)
     {
-        CompareTo(arguments, ref p, c => c < 0);
+        CompareTo(arguments, ref p, (v1 , v2) => v1 != null && v1 is IComparable c1 && v2 != null && c1.CompareTo(v2) < 0);
     }
 
     private void GreaterThanOrEqual(ReadOnlySpan<byte> arguments, ref int p)
     {
-        CompareTo(arguments, ref p, c => c >= 0);
+        CompareTo(arguments, ref p, (v1 , v2) => v1 != null && v1 is IComparable c1 && v2 != null && c1.CompareTo(v2) >= 0);
     }
 
     private void LessThanOrEqual(ReadOnlySpan<byte> arguments, ref int p)
     {
-        CompareTo(arguments, ref p, c => c <= 0);
+        CompareTo(arguments, ref p, (v1 , v2) => v1 != null && v1 is IComparable c1 && v2 != null && c1.CompareTo(v2) <= 0);
     }
 
     private void Equal(ReadOnlySpan<byte> arguments, ref int p)
     {
-        CompareTo(arguments, ref p, c => c == 0);
+        CompareTo(arguments, ref p, (v1, v2) => object.Equals(v1, v2));
     }
 
     private void NotEqual(ReadOnlySpan<byte> arguments, ref int p)
     {
-        CompareTo(arguments, ref p, c => c != 0);
+        CompareTo(arguments, ref p, (v1, v2) => !object.Equals(v1, v2));
     }
 
-    private void CompareTo(ReadOnlySpan<byte> arguments, ref int p, Func<int, bool> compare)
+    private void CompareTo(ReadOnlySpan<byte> arguments, ref int p, Func<object?, object?, bool> compare)
     {
         var firstOperand = _currentStackFrame!.Registers[arguments[0]];
         var secondOperand = _currentStackFrame!.Registers[arguments[1]];
@@ -336,14 +336,10 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
             _failed = true;
         else
         {
-            var v1 = GetRealValueInRegister(firstOperand) as System.IComparable;
-            if (v1 != null)
-            {
-                var v2 = GetRealValueInRegister(secondOperand) as System.IComparable;
-                _failed = v2 == null || !compare(v1.CompareTo(v2));
-            }
-            else
-                _failed = true;
+            var v1 = GetRealValueInRegister(firstOperand);
+            var v2 = GetRealValueInRegister(secondOperand);
+
+            _failed = !compare(v1, v2);
         }
 
         Unify(_failed, _currentStackFrame!.Registers[arguments[2]]);

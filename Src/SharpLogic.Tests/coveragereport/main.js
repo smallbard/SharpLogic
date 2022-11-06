@@ -225,10 +225,10 @@ var assemblies = [
       { "name": "SharpLogic.ByteCodeVM.ByteCodeContainer", "rp": "SharpLogic_ByteCodeContainer.html", "cl": 13, "ucl": 0, "cal": 13, "tl": 29, "ct": "LineCoverage", "cbm": "-", "cb": 4, "tb": 4, "cm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "hc": [] },
       { "name": "SharpLogic.ByteCodeVM.Compilation.CompilationContext", "rp": "SharpLogic_CompilationContext.html", "cl": 37, "ucl": 0, "cal": 37, "tl": 60, "ct": "LineCoverage", "cbm": "-", "cb": 4, "tb": 4, "cm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "hc": [] },
       { "name": "SharpLogic.ByteCodeVM.Compilation.CompilationResult", "rp": "SharpLogic_CompilationResult.html", "cl": 3, "ucl": 1, "cal": 4, "tl": 12, "ct": "LineCoverage", "cbm": "-", "cb": 0, "tb": 0, "cm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "hc": [] },
-      { "name": "SharpLogic.ByteCodeVM.Compilation.Compiler", "rp": "SharpLogic_Compiler.html", "cl": 208, "ucl": 33, "cal": 241, "tl": 332, "ct": "LineCoverage", "cbm": "-", "cb": 168, "tb": 248, "cm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "hc": [] },
+      { "name": "SharpLogic.ByteCodeVM.Compilation.Compiler", "rp": "SharpLogic_Compiler.html", "cl": 219, "ucl": 23, "cal": 242, "tl": 333, "ct": "LineCoverage", "cbm": "-", "cb": 184, "tb": 256, "cm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "hc": [] },
       { "name": "SharpLogic.ByteCodeVM.Compilation.Query<T>", "rp": "SharpLogic_Query_T_.html", "cl": 15, "ucl": 3, "cal": 18, "tl": 88, "ct": "LineCoverage", "cbm": "-", "cb": 1, "tb": 2, "cm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "hc": [] },
-      { "name": "SharpLogic.ByteCodeVM.Execution.ByteCodeExecutor.<>c<TResult>", "rp": "SharpLogic___c_TResult_.html", "cl": 2, "ucl": 4, "cal": 6, "tl": 601, "ct": "LineCoverage", "cbm": "-", "cb": 0, "tb": 0, "cm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "hc": [] },
-      { "name": "SharpLogic.ByteCodeVM.Execution.ByteCodeExecutor<TResult>", "rp": "SharpLogic_ByteCodeExecutor_TResult_.html", "cl": 330, "ucl": 97, "cal": 427, "tl": 601, "ct": "LineCoverage", "cbm": "-", "cb": 145, "tb": 234, "cm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "hc": [] },
+      { "name": "SharpLogic.ByteCodeVM.Execution.ByteCodeExecutor.<>c<TResult>", "rp": "SharpLogic___c_TResult_.html", "cl": 3, "ucl": 3, "cal": 6, "tl": 597, "ct": "LineCoverage", "cbm": "-", "cb": 6, "tb": 24, "cm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "hc": [] },
+      { "name": "SharpLogic.ByteCodeVM.Execution.ByteCodeExecutor<TResult>", "rp": "SharpLogic_ByteCodeExecutor_TResult_.html", "cl": 334, "ucl": 89, "cal": 423, "tl": 597, "ct": "LineCoverage", "cbm": "-", "cb": 145, "tb": 230, "cm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "hc": [] },
       { "name": "SharpLogic.ByteCodeVM.Execution.QueryVariable", "rp": "SharpLogic_QueryVariable.html", "cl": 19, "ucl": 0, "cal": 19, "tl": 34, "ct": "LineCoverage", "cbm": "-", "cb": 3, "tb": 4, "cm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "hc": [] },
       { "name": "SharpLogic.ByteCodeVM.Execution.Registers", "rp": "SharpLogic_Registers.html", "cl": 6, "ucl": 0, "cal": 6, "tl": 15, "ct": "LineCoverage", "cbm": "-", "cb": 8, "tb": 8, "cm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "hc": [] },
       { "name": "SharpLogic.ByteCodeVM.Execution.RegisterValue", "rp": "SharpLogic_RegisterValue.html", "cl": 8, "ucl": 0, "cal": 8, "tl": 28, "ct": "LineCoverage", "cbm": "-", "cb": 2, "tb": 2, "cm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "hc": [] },
@@ -244,15 +244,15 @@ var assemblies = [
       { "name": "SharpLogic.Rule", "rp": "SharpLogic_Rule.html", "cl": 5, "ucl": 0, "cal": 5, "tl": 12, "ct": "LineCoverage", "cbm": "-", "cb": 0, "tb": 0, "cm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "hc": [] },
       { "name": "SharpLogic.SharpLogicException", "rp": "SharpLogic_SharpLogicException.html", "cl": 0, "ucl": 1, "cal": 1, "tl": 6, "ct": "LineCoverage", "cbm": "-", "cb": 0, "tb": 0, "cm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "hc": [] },
       { "name": "SharpLogic.Term", "rp": "SharpLogic_Term.html", "cl": 8, "ucl": 3, "cal": 11, "tl": 22, "ct": "LineCoverage", "cbm": "-", "cb": 2, "tb": 2, "cm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "hc": [] },
-      { "name": "SharpLogic.TermValue", "rp": "SharpLogic_TermValue.html", "cl": 19, "ucl": 19, "cal": 38, "tl": 76, "ct": "LineCoverage", "cbm": "-", "cb": 0, "tb": 0, "cm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "hc": [] },
+      { "name": "SharpLogic.TermValue", "rp": "SharpLogic_TermValue.html", "cl": 20, "ucl": 18, "cal": 38, "tl": 76, "ct": "LineCoverage", "cbm": "-", "cb": 0, "tb": 0, "cm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "hc": [] },
       { "name": "SharpLogic.Variable", "rp": "SharpLogic_Variable.html", "cl": 5, "ucl": 0, "cal": 5, "tl": 14, "ct": "LineCoverage", "cbm": "-", "cb": 0, "tb": 0, "cm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "hc": [] },
     ]},
   {
     "name": "SharpLogic.Tests",
     "classes": [
       { "name": "SharpLogic.Tests.LogicTests", "rp": "SharpLogic.Tests_LogicTests.html", "cl": 105, "ucl": 0, "cal": 105, "tl": 147, "ct": "LineCoverage", "cbm": "-", "cb": 99, "tb": 168, "cm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "hc": [] },
-      { "name": "SharpLogic.Tests.PredicateTests", "rp": "SharpLogic.Tests_PredicateTests.html", "cl": 92, "ucl": 0, "cal": 92, "tl": 134, "ct": "LineCoverage", "cbm": "-", "cb": 125, "tb": 208, "cm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "hc": [] },
-      { "name": "SharpLogic.Tests.PredicateTests.User", "rp": "SharpLogic.Tests_User.html", "cl": 1, "ucl": 0, "cal": 1, "tl": 134, "ct": "LineCoverage", "cbm": "-", "cb": 0, "tb": 0, "cm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "hc": [] },
+      { "name": "SharpLogic.Tests.PredicateTests", "rp": "SharpLogic.Tests_PredicateTests.html", "cl": 97, "ucl": 0, "cal": 97, "tl": 144, "ct": "LineCoverage", "cbm": "-", "cb": 137, "tb": 220, "cm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "hc": [] },
+      { "name": "SharpLogic.Tests.PredicateTests.User", "rp": "SharpLogic.Tests_User.html", "cl": 1, "ucl": 0, "cal": 1, "tl": 144, "ct": "LineCoverage", "cbm": "-", "cb": 0, "tb": 0, "cm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "hc": [] },
       { "name": "SharpLogic.Tests.ResultProjectorTests", "rp": "SharpLogic.Tests_ResultProjectorTests.html", "cl": 122, "ucl": 0, "cal": 122, "tl": 195, "ct": "LineCoverage", "cbm": "-", "cb": 0, "tb": 0, "cm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "hc": [] },
       { "name": "SharpLogic.Tests.ResultProjectorTests.TestClass", "rp": "SharpLogic.Tests_TestClass.html", "cl": 2, "ucl": 0, "cal": 2, "tl": 195, "ct": "LineCoverage", "cbm": "-", "cb": 0, "tb": 0, "cm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "hc": [] },
       { "name": "SharpLogic.Tests.ResultProjectorTests.TestStruct", "rp": "SharpLogic.Tests_TestStruct.html", "cl": 2, "ucl": 0, "cal": 2, "tl": 195, "ct": "LineCoverage", "cbm": "-", "cb": 0, "tb": 0, "cm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "hc": [] },
@@ -268,7 +268,7 @@ var riskHotspotMetrics = [
 
 var riskHotspots = [
   {
-    "assembly": "SharpLogic", "class": "SharpLogic.ByteCodeVM.Compilation.Compiler", "reportPath": "SharpLogic_Compiler.html", "methodName": "CompilePredicate(SharpLogic.Predicate, ref SharpLogic.ByteCodeVM.Compilation.CompilationContext)", "methodShortName": "CompilePredicate(...)", "fileIndex": 0, "line": 183,
+    "assembly": "SharpLogic", "class": "SharpLogic.ByteCodeVM.Compilation.Compiler", "reportPath": "SharpLogic_Compiler.html", "methodName": "CompilePredicate(SharpLogic.Predicate, ref SharpLogic.ByteCodeVM.Compilation.CompilationContext)", "methodShortName": "CompilePredicate(...)", "fileIndex": 0, "line": 184,
     "metrics": [
       { "value": 82, "exceeded": true },
     ]},
@@ -278,17 +278,17 @@ var riskHotspots = [
       { "value": 64, "exceeded": true },
     ]},
   {
-    "assembly": "SharpLogic", "class": "SharpLogic.ByteCodeVM.Compilation.Compiler", "reportPath": "SharpLogic_Compiler.html", "methodName": "CompileRule(SharpLogic.Rule, ref SharpLogic.ByteCodeVM.Compilation.CompilationContext)", "methodShortName": "CompileRule(...)", "fileIndex": 0, "line": 38,
+    "assembly": "SharpLogic", "class": "SharpLogic.ByteCodeVM.Compilation.Compiler", "reportPath": "SharpLogic_Compiler.html", "methodName": "CompileRule(SharpLogic.Rule, ref SharpLogic.ByteCodeVM.Compilation.CompilationContext)", "methodShortName": "CompileRule(...)", "fileIndex": 0, "line": 39,
     "metrics": [
       { "value": 62, "exceeded": true },
     ]},
   {
-    "assembly": "SharpLogic", "class": "SharpLogic.ByteCodeVM.Execution.ByteCodeExecutor<TResult>", "reportPath": "SharpLogic_ByteCodeExecutor_TResult_.html", "methodName": "UnifyReg(System.ReadOnlySpan<byte>, ref int)", "methodShortName": "UnifyReg(...)", "fileIndex": 0, "line": 434,
+    "assembly": "SharpLogic", "class": "SharpLogic.ByteCodeVM.Execution.ByteCodeExecutor<TResult>", "reportPath": "SharpLogic_ByteCodeExecutor_TResult_.html", "methodName": "UnifyReg(System.ReadOnlySpan<byte>, ref int)", "methodShortName": "UnifyReg(...)", "fileIndex": 0, "line": 430,
     "metrics": [
       { "value": 54, "exceeded": true },
     ]},
   {
-    "assembly": "SharpLogic", "class": "SharpLogic.ByteCodeVM.Execution.ByteCodeExecutor<TResult>", "reportPath": "SharpLogic_ByteCodeExecutor_TResult_.html", "methodName": "ArithmeticOp(System.ReadOnlySpan<byte>, ref int, string)", "methodShortName": "ArithmeticOp(...)", "fileIndex": 0, "line": 380,
+    "assembly": "SharpLogic", "class": "SharpLogic.ByteCodeVM.Execution.ByteCodeExecutor<TResult>", "reportPath": "SharpLogic_ByteCodeExecutor_TResult_.html", "methodName": "ArithmeticOp(System.ReadOnlySpan<byte>, ref int, string)", "methodShortName": "ArithmeticOp(...)", "fileIndex": 0, "line": 376,
     "metrics": [
       { "value": 32, "exceeded": true },
     ]},
