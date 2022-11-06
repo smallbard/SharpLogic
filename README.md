@@ -183,7 +183,7 @@ Console.WriteLine(vm.Query<int>((t, p) => t.len(new[] { 4, 5, 6 }, t.N)).FirstOr
 // display 3
 ```
 
-In order to these predicates to work, values must implement _System.Collections.Generics.IEnumerable_.
+For these predicates to work, values must implement _System.Collections.Generics.IEnumerable_.
 
 ## Remaining tasks
 
