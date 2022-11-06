@@ -166,6 +166,25 @@ Console.WriteLine(query.First());
 // display test
 ```
 
+### List comprehension
+
+Unify with empty list is done by p.Empty. Unify head and tail with p[head , tail] :
+
+```csharp
+var vm = new Logic((t, p) =>
+{
+    t.lenacc(p.Empty, t.A, t.A);
+    t.lenacc((p[t.H, t.T], t.A, t.N), p.Is(t.A1, t.A + 1), t.lenacc(t.T, t.A1, t.N));
+    t.len((t.L, t.N), t.lenacc(t.L, 0, t.N));
+});
+
+Console.WriteLine(vm.Query<int>((t, p) => t.len(new[] { 4, 5, 6 }, t.N)).FirstOrDefault());
+
+// display 3
+```
+
+In order to these predicates to work, values must implement _System.Collections.Generics.IEnumerable_.
+
 ## Remaining tasks
 
 - Predicates asserta and assertz
