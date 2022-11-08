@@ -1,6 +1,6 @@
 # SharpLogic
 
-SharpLogic aims to bring Logic Programming to C#. It is not embeding Prolog string in C#, but more a Linq like approach to fully exploit the C# langage capabilities.
+SharpLogic integrates Prolog with C#. There are no built-in strings, but rather a Linq-like approach to fully exploit the capabilities of the C# language with a Prolog virtual machine implemented in C#.
 
 ## How to use it ?
 
