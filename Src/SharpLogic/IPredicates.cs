@@ -16,7 +16,9 @@ public interface IPredicates
 
     //Predicate Capture<T>(TermValue tv, Action<T> exec);
 
-    ListPredicate this[TermValue h, TermValue t] { get; }
+    ListPredicate this[params object[] elements]{ get; }
 
     ListPredicate Empty { get; }
+
+    ListPredicate Tail(object v);
 }

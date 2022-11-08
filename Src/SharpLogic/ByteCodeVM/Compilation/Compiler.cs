@@ -1,5 +1,6 @@
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
+using SharpLogic.ByteCodeVM.Execution;
 
 namespace SharpLogic.ByteCodeVM.Compilation;
 
@@ -28,7 +29,7 @@ public class Compiler
     private CompilationResult Compile(TermValue tv, ref CompilationContext context) => tv switch
     {
         Rule r => CompileRule(r, ref context),
-        Term{Parent: null, Args: [Variable v, Term, ..]} t => CompileRule(new Rule(t.Functor, new [] { t.Args[0]}, t.Args.Skip(1).ToArray()), ref context),
+        Term{Parent: null, Args: [Variable v, Term, ..]} t => CompileRule(new Rule(t.Functor, t.Args.TakeWhile(a => a is Variable || a is ListPredicate).ToArray(), t.Args.SkipWhile(a => a is Variable || a is ListPredicate).ToArray()), ref context),
         Term{Parent: null} t => CompileFact(t, ref context),
         Predicate p => CompilePredicate(p, ref context),        
         Term t => CompileGoal(t, context),
@@ -61,6 +62,12 @@ public class Compiler
             }
             else if (r.Head[i] is ListPredicate lp)
             {
+                foreach (var arg in lp.Args)
+                    if (arg is Variable variable)
+                        DeclareVariable(variable, ref context);
+                    else if (arg is ListPredicate lpTail && lpTail.Functor == "Tail" && lpTail.Args[0] is Variable varTail)
+                        DeclareVariable(varTail, ref context);
+
                 foreach (var variable in lp.Args.OfType<Variable>()) DeclareVariable(variable, ref context);
 
                 var cr = CompileListPredicate(lp, (byte)i, ref context);
@@ -210,7 +217,7 @@ public class Compiler
     private CompilationResult CompileListPredicate(ListPredicate p, byte rxIndex, ref CompilationContext context) => p switch
     {
         { Functor: nameof(IPredicates.Empty) } => CompileEmpty(p, rxIndex, context),
-        { Functor: "HeadTail" } => CompileHeadTail(p, ref context),
+        { Functor: "ListPattern"} => CompileListPattern(p, ref context),
         _ => CompilationResult.Error($"Unsupported list predicate {p.Functor}.")
     };
 
@@ -224,36 +231,54 @@ public class Compiler
         return CompilationResult.Success;
     }
 
-    private CompilationResult CompileHeadTail(ListPredicate p, ref CompilationContext context)
+    private CompilationResult CompileListPattern(ListPredicate p, ref CompilationContext context)
     {
-        if (!(p.Parent is Rule r && r.Head.Contains(p))) return CompilationResult.Error("Head an tail extraction should be in rule head.");
+        if (!(p.Parent is Rule r && r.Head.Contains(p))) 
+            return CompilationResult.Error("Head an tail extraction should be in rule head.");
 
-        var opCodes = new[] { OpCode.UnifyHead, OpCode.UnifyTail };
-        var byte2 = context.Byte5.Slice(0, 2);
-        byte2[0] = (byte)Array.IndexOf(r.Head, p);
+        if (p.Args.Length > 255) return CompilationResult.Error("List pattern can't be longer than 255.");
 
+        var listRegisterIndex = (byte)Array.IndexOf(r.Head, p);
+
+        var isTail = false;
         for (var i = 0; i < p.Args.Length; i++)
         {
             var arg = p.Args[i];
+            if (arg is ListPredicate lp && lp.Functor == "Tail")
+            {
+                isTail = true;
+                if (i != p.Args.Length - 1) return CompilationResult.Error("Tail must be the last element of a list pattern.");
+                arg = lp.Args[0];
+            }
+
+            byte argRegisterIndex;
             if (arg is Variable v)
-                byte2[1] = GetVariableRegIndex(v, context);
+                argRegisterIndex = GetVariableRegIndex(v, context);
             else if (arg is Predicate pArg)
             {
                 var cr = CompilePredicate(pArg, ref context);
                 if (!cr.Succeed) return cr;
 
-                byte2[1] = (byte)(context.FreeRegister - 1);
+                argRegisterIndex = (byte)(context.FreeRegister - 1);
             }
             else if (arg is Term)
                 return CompilationResult.Error($"Unsupported term {arg}.");
             else
             {
-                byte2[1] = (byte)context.FreeRegister++;
-                CompileUnify(arg, byte2[i], context);
+                argRegisterIndex = (byte)context.FreeRegister++;
+                CompileUnify(arg, argRegisterIndex, context);
             }
 
-            context.Code.AppendOpCode(opCodes[i], byte2);
+            if (i == 0)
+                context.AppendOpCode(OpCode.UnifyHead, Slice(context.Byte5, listRegisterIndex, argRegisterIndex));
+            else if (isTail)
+                context.AppendOpCode(OpCode.UnifyTail, Slice(context.Byte5, listRegisterIndex, argRegisterIndex));
+            else
+                context.AppendOpCode(OpCode.UnifyNth, Slice(context.Byte5, listRegisterIndex, argRegisterIndex, (byte)i));
         }
+
+        if (!isTail) // must check the list length
+            context.AppendOpCode(OpCode.UnifyLen, WriteIntByte(context.Byte5, p.Args.Length, listRegisterIndex));
 
         return CompilationResult.Success;
     }

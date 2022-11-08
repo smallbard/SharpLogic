@@ -28,15 +28,23 @@ internal class DynamicTermBuilder : DynamicObject, IPredicates
 
     public ListPredicate Empty => new ListPredicate(nameof(Empty), Array.Empty<TermValue>());
 
-    public ListPredicate this[TermValue h, TermValue t] 
+    public ListPredicate this[params object[] elements]
     {
         get
         {
-            var p = new ListPredicate("HeadTail", new[] { h, t });
+            var p = new ListPredicate("ListPattern", elements.Select(e => ConvertToTermValue(e)).ToArray());
             _astBuilder.AddTerm(p);
 
             return p;
         }
+    }
+
+    public ListPredicate Tail(object v)
+    {
+        var p = new ListPredicate("Tail", new[] {  ConvertToTermValue(v) });
+        _astBuilder.AddTerm(p);
+
+        return p;
     }
 
     public Predicate OfType<T>(Variable v)
@@ -59,7 +67,9 @@ internal class DynamicTermBuilder : DynamicObject, IPredicates
     {
         var name = binder.Name;
 
-        if (_variables.ContainsKey(name))
+        if (name == "_")
+            result = new Variable(Guid.NewGuid().ToString());
+        else if (_variables.ContainsKey(name))
             result = _variables[name];
         else
             result = _variables[name] = new Variable(name);

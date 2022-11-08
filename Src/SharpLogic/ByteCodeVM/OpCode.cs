@@ -13,7 +13,9 @@ public enum OpCode : byte
     UnifyReg,       // Unify two Registers                                          Arg size : 2
     UnifyEmpty,     // Unify empty List with Px                                     Arg size : 1
     UnifyHead,      // Unify head list with register                                Arg size : 2
+    UnifyNth,       // Unify Nieth list element with register                       Arg size : 3
     UnifyTail,      // Unify tail list with register                                Arg size : 2
+    UnifyLen,       // Unify list length                                            Arg size : 5
 
     // Rule
     StackPxToAy,    // Store a register Px in a register Ay                         Arg size : 2

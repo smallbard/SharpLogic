@@ -1,6 +1,6 @@
 # SharpLogic
 
-SharpLogic aims to bring Logic Programming to C#. It is not embeding Prolog string in C#, but more a Linq like approach to fully exploit the c# langage capabilities.
+SharpLogic aims to bring Logic Programming to C#. It is not embeding Prolog string in C#, but more a Linq like approach to fully exploit the C# langage capabilities.
 
 ## How to use it ?
 
@@ -40,9 +40,9 @@ Check the unit tests for more examples.
 As it can be seen in Logic constructor and in Query method, a method is called with two parameters, named t and p in the examples :
 
 - t is a dynamic object which lets you express some Prolog like code without prior fake class and method definitions.
-- p is an instance of Predicates. As the name suggests, it gives access to all supported predicates to build rules and queries.
+- p is an instance of _IPredicates_. As the name suggests, it gives access to all supported predicates to build rules and queries.
 
-> It's not usually good practice to use dynamic object in C# but here it comes in handy. As Prolog is a declarative language, dynamic evaluation is used here to build a kind of AST. Think of System.Linq.Expressions but dynamic.
+> It's not usually good practice to use dynamic object in C# but here it comes in handy. As Prolog is a declarative language, dynamic evaluation is used here to build an AST. Think of System.Linq.Expressions but dynamic.
 
 Loops and other c# constructs can be used to define fact and rules (for example, facts can be read from a database).
 
@@ -168,13 +168,14 @@ Console.WriteLine(query.First());
 
 ### List comprehension
 
-Unify with empty list is done by p.Empty. Unify head and tail with p[head , tail] :
+Unify with empty list is done by p.Empty.
+A list pattern can be build with p[ .. ]. p.Tail() can be used inside a list pattern to unify with the list tail.
 
 ```csharp
 var vm = new Logic((t, p) =>
 {
     t.lenacc(p.Empty, t.A, t.A);
-    t.lenacc((p[t.H, t.T], t.A, t.N), p.Is(t.A1, t.A + 1), t.lenacc(t.T, t.A1, t.N));
+    t.lenacc((p[t.H, p.Tail(t.T)], t.A, t.N), p.Is(t.A1, t.A + 1), t.lenacc(t.T, t.A1, t.N));
     t.len((t.L, t.N), t.lenacc(t.L, 0, t.N));
 });
 
@@ -183,10 +184,23 @@ Console.WriteLine(vm.Query<int>((t, p) => t.len(new[] { 4, 5, 6 }, t.N)).FirstOr
 // display 3
 ```
 
+Another example with a discard :
+
+```csharp
+var vm = new Logic((t, p) =>
+{
+    t.last(t.X, p[t.X]);
+    t.last((t.X, p[t._, p.Tail(t.Y)]), t.last(t.X, t.Y));
+});
+
+Console.WriteLine(vm.Query<int>((t, p) => t.last(t.X, new[] { 4, 5, 6 })).FirstOrDefault());
+
+// display 6
+```
+
 For these predicates to work, values must implement _System.Collections.Generics.IEnumerable_.
 
 ## Remaining tasks
 
-- Predicates asserta and assertz
-- Optimizations : clause indexing, last call optimization, ...
-- More predicates!
+- More predicates in order to be as close as possible to the prolog ISO standard.
+- The first objective is correctness but then optimization : clause indexing, last call optimization, reduce boxing and reflection usage...

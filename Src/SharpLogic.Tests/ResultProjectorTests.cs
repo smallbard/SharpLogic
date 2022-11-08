@@ -107,7 +107,7 @@ public class ResultProjectorTests
         Assert.AreEqual("5", projector.Result);
     }
 
-    [DataTestMethod]  
+    [DataTestMethod]
     [DataRow(int.MaxValue)]
     [DataRow(short.MaxValue)]
     [DataRow(long.MaxValue)]

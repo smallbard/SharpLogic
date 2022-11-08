@@ -31,9 +31,4 @@ public class ASTBuilder
                 RemoveArguments(ta);
         }
     }
-
-    private IEnumerable<object?> TupleEnumerate(ITuple t)
-    {
-        for (var i = 0; i < t.Length; i++) yield return t[i];
-    }
 }

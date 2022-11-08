@@ -27,7 +27,9 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
         2, //UnifyReg
         1, //UnifyEmpty
         2, //UnifyHead
+        3, //UnifyNth
         2, //UnifyTail
+        5, //UnifyLen
 
         2, //StackPxToAy
         0, //NewEnvironment
@@ -60,6 +62,7 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
     private readonly (ByteCodeContainer Code,  GetOffsetsDelegate GetOffsets) _factAndRule;
     private readonly ReadOnlyMemory<byte> _queryCode;
     private readonly List<StackFrame> _environment;
+    private readonly Unification _unification;
 
     private StackFrame _currentStackFrame;
     private bool _firstExecution = true;
@@ -79,7 +82,9 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
             UnifyReg,
             UnifyEmpty,
             UnifyHead,
+            UnifyNth,
             UnifyTail,
+            UnifyLen,
 
             StackPxToAy,
             NewEnvironment,
@@ -110,6 +115,7 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
         _queryCode = queryCode;
         _environment = new List<StackFrame>();
         _currentStackFrame = new StackFrame(null);
+        _unification = new Unification(() => _currentStackFrame);
     }
 
     public TResult Current => new ResultProjector<TResult>(_currentStackFrame).Result;
@@ -202,43 +208,43 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
 
     private void UnValCst(ReadOnlySpan<byte> arguments, ref int p)
     {
-        Unify(_valueConstants.GetConstant(arguments[0]), _currentStackFrame!.Registers[arguments[1]]);
+        _failed = _unification.Unify(_valueConstants.GetConstant(arguments[0]), _currentStackFrame!.Registers[arguments[1]]);
         p+= 1 + arguments.Length;
     }
 
     private void UnRefCst(ReadOnlySpan<byte> arguments, ref int p)
     {
-        Unify(_managedConstants.GetConstant(arguments[0]), _currentStackFrame!.Registers[arguments[1]]);
+        _failed = _unification.Unify(_managedConstants.GetConstant(arguments[0]), _currentStackFrame!.Registers[arguments[1]]);
         p+= 1 + arguments.Length;
     }
 
     private void UnValCstLgIdx(ReadOnlySpan<byte> arguments, ref int p)
     {
-        Unify(_valueConstants.GetConstant(BitConverter.ToInt32(arguments)), _currentStackFrame!.Registers[arguments[5]]);
+        _failed = _unification.Unify(_valueConstants.GetConstant(BitConverter.ToInt32(arguments)), _currentStackFrame!.Registers[arguments[5]]);
         p+= 1 + arguments.Length;
     }
 
     private void UnRefCstLgIdx(ReadOnlySpan<byte> arguments, ref int p)
     {
-        Unify(_managedConstants.GetConstant(BitConverter.ToInt32(arguments)), _currentStackFrame!.Registers[arguments[5]]);
+        _failed = _unification.Unify(_managedConstants.GetConstant(BitConverter.ToInt32(arguments)), _currentStackFrame!.Registers[arguments[5]]);
         p+= 1 + arguments.Length;
     }
 
     private void UnTrue(ReadOnlySpan<byte> arguments, ref int p)
     {
-        Unify(true, _currentStackFrame!.Registers[arguments[0]]);
+        _failed = _unification.Unify(true, _currentStackFrame!.Registers[arguments[0]]);
         p+= 1 + arguments.Length;
     }
 
     private void UnFalse(ReadOnlySpan<byte> arguments, ref int p)
     {
-        Unify(false, _currentStackFrame!.Registers[arguments[0]]);
+        _failed = _unification.Unify(false, _currentStackFrame!.Registers[arguments[0]]);
         p+= 1 + arguments.Length;
     }
 
     private void UnNull(ReadOnlySpan<byte> arguments, ref int p)
     {
-        Unify<object>(null, _currentStackFrame!.Registers[arguments[0]]);
+        _failed = _unification.Unify<object>(null, _currentStackFrame!.Registers[arguments[0]]);
         p+= 1 + arguments.Length;
     }
 
@@ -343,14 +349,9 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
         if (firstOperand.Type == RegisterValueType.Unbound || secondOperand.Type == RegisterValueType.Unbound)
             _failed = true;
         else
-        {
-            var v1 = GetRealValueInRegister(firstOperand);
-            var v2 = GetRealValueInRegister(secondOperand);
+            _failed = !compare(firstOperand.RealValue, secondOperand.RealValue);
 
-            _failed = !compare(v1, v2);
-        }
-
-        Unify(_failed, _currentStackFrame!.Registers[arguments[2]]);
+        _unification.Unify(_failed, _currentStackFrame!.Registers[arguments[2]]);
 
         p += 1 + arguments.Length;
     }
@@ -390,10 +391,10 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
             _failed = true;
         else
         {
-            var v1 = GetRealValueInRegister(firstOperand);
+            var v1 = firstOperand.RealValue;
             if (v1 != null)
             {
-                var v2 = GetRealValueInRegister(secondOperand) as System.IComparable;
+                var v2 = secondOperand.RealValue as System.IComparable;
                 if (v1 is int i1 && v2 is int i2)
                 {
                     if (operatorName == "op_Addition")
@@ -419,7 +420,7 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
                 _failed = true;
         }
 
-        if (!_failed) Unify(result, _currentStackFrame.Registers[arguments[2]]);
+        if (!_failed) _failed = _unification.Unify(result, _currentStackFrame.Registers[arguments[2]]);
         
         p += 1 + arguments.Length;
     }
@@ -439,33 +440,7 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
         var firstRegister = _currentStackFrame.Registers[arguments[0]];
         var secondRegister = _currentStackFrame.Registers[arguments[1]];
 
-        if (firstRegister.Type == RegisterValueType.Unbound && secondRegister.Type != RegisterValueType.Unbound)
-            firstRegister.Value = secondRegister.Type;
-        else if (firstRegister.Type != RegisterValueType.Unbound && secondRegister.Type == RegisterValueType.Unbound)
-            secondRegister.Value = firstRegister.Value;
-        else if (firstRegister.Type != RegisterValueType.Unbound && secondRegister.Type != RegisterValueType.Unbound)
-        {
-            if (firstRegister.Type != RegisterValueType.Variable && secondRegister.Type == RegisterValueType.Variable)
-                Unify(firstRegister.Value, secondRegister);
-            else if (firstRegister.Type == RegisterValueType.Variable && secondRegister.Type != RegisterValueType.Variable)
-                Unify(secondRegister.Value, firstRegister);
-            else if (firstRegister.Type == RegisterValueType.Variable && secondRegister.Type == RegisterValueType.Variable)
-            {
-                var var1 = (QueryVariable)firstRegister.Value!;
-                var var2 = (QueryVariable)secondRegister.Value!;
-
-                if (var1.IsBound && !var2.IsBound)
-                    Unify(var1.Value, secondRegister);
-                else if (!var1.IsBound && var2.IsBound)
-                    Unify(var2.Value, firstRegister);
-                else if (var1.IsBound && var2.IsBound)
-                    Unify(var1.Value, var2.Value);
-                else
-                    _failed = true;
-            }
-            else
-                Unify(firstRegister.Value, secondRegister);
-        }
+        _failed = _unification.Unify(firstRegister, secondRegister);
 
         p += 1 + arguments.Length;
     }
@@ -473,73 +448,47 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
     private void UnifyEmpty(ReadOnlySpan<byte> arguments, ref int p)
     {
         var register = _currentStackFrame!.Registers[arguments[0]];
-        if (register.Type == RegisterValueType.Unbound || (register.Type == RegisterValueType.Variable && !((QueryVariable)register.Value!).IsBound))
-        {
-            _failed = true;
-            return;
-        }
-
-        var lst = GetRealValueInRegister(register);
-
-        if (lst is System.Collections.ICollection c)
-            _failed = c.Count > 0;
-        else if (lst is System.Collections.IEnumerable e)
-            _failed = e.GetEnumerator().MoveNext();
+        _failed = _unification.UnifyEmpty(register);
 
         p += 1 + arguments.Length;
     }
     
     private void UnifyHead(ReadOnlySpan<byte> arguments, ref int p)
     {
-        var register = _currentStackFrame!.Registers[arguments[0]];
-        if (register.Type == RegisterValueType.Unbound || (register.Type == RegisterValueType.Variable && !((QueryVariable)register.Value!).IsBound))
-        {
-            _failed = true;
-            return;
-        }
+        var lstRegister = _currentStackFrame!.Registers[arguments[0]];
+        var headRegister = _currentStackFrame!.Registers[arguments[1]];
 
-        var lst = GetRealValueInRegister(register);
-        if (lst is System.Collections.IEnumerable e)
-        {
-            var en = e.GetEnumerator();
-            if (!en.MoveNext())
-            {
-                _failed = true;
-                return;
-            }
+        _failed = _unification.UnifyHead(lstRegister, headRegister);
 
-            var head = en.Current;
-            Unify(head, _currentStackFrame!.Registers[arguments[1]]);
-        }
-        else
-        {
-            _failed = true;
-            return;
-        }
+        p += 1 + arguments.Length;
+    }
+
+    private void UnifyNth(ReadOnlySpan<byte> arguments, ref int p)
+    {
+        var lstRegister = _currentStackFrame!.Registers[arguments[0]];
+        var valueRegister = _currentStackFrame!.Registers[arguments[1]];
+
+        _failed = _unification.UnifyNth(lstRegister, valueRegister, arguments[2]);
 
         p += 1 + arguments.Length;
     }
 
     private void UnifyTail(ReadOnlySpan<byte> arguments, ref int p)
     {
-        var register = _currentStackFrame!.Registers[arguments[0]];
-        if (register.Type == RegisterValueType.Unbound || (register.Type == RegisterValueType.Variable && !((QueryVariable)register.Value!).IsBound))
-        {
-            _failed = true;
-            return;
-        }
+        var lstRegister = _currentStackFrame!.Registers[arguments[0]];
+        var tailRegister = _currentStackFrame!.Registers[arguments[1]];
 
-        var lst = GetRealValueInRegister(register);
-        if (lst is System.Collections.IEnumerable e)
-        {
-            var tail = typeof(Enumerable).GetMethod(nameof(Enumerable.Skip))!.MakeGenericMethod(lst.GetType().GetInterfaces().First(i => i.Name == "IEnumerable`1").GetGenericArguments()[0]).Invoke(null, new object?[] { lst, 1 });
-            Unify(tail, _currentStackFrame!.Registers[arguments[1]]);
-        }
-        else
-        {
-            _failed = true;
-            return;
-        }
+        _failed = _unification.UnifyTail(lstRegister, tailRegister);
+
+        p += 1 + arguments.Length;
+    }
+
+    private void UnifyLen(ReadOnlySpan<byte> arguments, ref int p)
+    {
+        var length = BitConverter.ToInt32(arguments);
+        var lstRegister = _currentStackFrame!.Registers[arguments[4]];
+
+        _failed = _unification.UnifyLen(lstRegister, length);
 
         p += 1 + arguments.Length;
     }
@@ -562,7 +511,7 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
         else if (register.Type == RegisterValueType.Variable && !((QueryVariable)register.Value!).IsBound)
             _failed = true;
 
-        _failed = GetRealValueInRegister(register)?.GetType().GetHashCode() != typeHashCode;
+        _failed = register.RealValue?.GetType().GetHashCode() != typeHashCode;
 
         p += 1 + arguments.Length;
     }
@@ -579,7 +528,7 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
             return;
         }
 
-        var obj = GetRealValueInRegister(objRegister);
+        var obj = objRegister.RealValue;
         if (obj == null)
         {
             _failed = true;
@@ -605,74 +554,6 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
         valueRegister.Value = field.GetValue(obj);
 
         p += 1 + arguments.Length;
-    }
-
-    private void Unify<TValue>(TValue? value, RegisterValue register)
-    {
-        if (register.Type == RegisterValueType.Unbound)
-            register.Value = value;
-        else if (register.Type == RegisterValueType.Constant)
-            Unify(value, register.Value);
-        else if (register.Type == RegisterValueType.Variable)
-        {
-            var variable = (QueryVariable)register.Value!;
-            if (variable.IsBound)
-                Unify(value, ((QueryVariable)register.Value!).Value);
-            else
-                variable.Bind(value, _currentStackFrame!);
-        }
-    }
-
-    private void Unify<TValue>(TValue? value, object? registerValue)
-    {
-        if (value is ValueTuple<ReadOnlyMemory<byte>, Type> cst)
-        {
-            if (registerValue is ValueTuple<ReadOnlyMemory<byte>, Type> registerMem && cst.Item1.Length == registerMem.Item1.Length)
-            {
-                var cstSpan = cst.Item1.Span;
-                var rvSpan = registerMem.Item1.Span;
-                for (var i = 0; i < cst.Item1.Length; i++)
-                    if (cstSpan[i] != rvSpan[i])
-                    {
-                        _failed = true;
-                        break;
-                    }
-            }
-            else if (ValueConstants.GetRealValueConstant(cst).Equals(registerValue))
-                _failed = false;
-            else
-            {
-                _failed = true;
-            }
-        }
-        else if (value is bool b)
-        {
-            _failed = !b.Equals(registerValue);
-        }
-        else if (value is object obj)
-        {
-            _failed = !object.Equals(value, registerValue);
-        }
-    }
-
-    private object? GetRealValueInRegister(RegisterValue register)
-    {
-        if (register.Type == RegisterValueType.Unbound) throw new SharpLogicException("Register must be bound.");
-
-        if (register.Type == RegisterValueType.Variable && register.Value is QueryVariable v)
-        {
-            if (!v.IsBound) throw new SharpLogicException($"Variable must be bound : '{v.Name}'.");
-
-            if (v.Value is ValueTuple<ReadOnlyMemory<byte>, Type> cstVar)
-                return ValueConstants.GetRealValueConstant(cstVar);
-
-            return v.Value;
-        }
-
-        if (register.Value is ValueTuple<ReadOnlyMemory<byte>, Type> cst)
-            return ValueConstants.GetRealValueConstant(cst);
-
-        return register.Value;
     }
 
     private delegate void OpCodeExecuteDelegate(ReadOnlySpan<byte> arguments, ref int p);
