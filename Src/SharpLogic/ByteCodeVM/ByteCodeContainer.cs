@@ -19,10 +19,6 @@ public class ByteCodeContainer
 
     public void AppendOpCode(OpCode opCode, Span<byte> arguments)
     {
-        var sb = new StringBuilder(opCode.ToString());
-        for (int i = 0; i < arguments.Length; i++) sb.Append(' ').Append(arguments[i]);
-        Console.WriteLine(sb);
-
         _code.Add((byte)opCode);
         for (var i = 0; i < arguments.Length; i++) _code.Add(arguments[i]);
     }

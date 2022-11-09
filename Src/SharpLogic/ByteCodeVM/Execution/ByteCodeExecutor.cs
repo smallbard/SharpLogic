@@ -15,52 +15,10 @@ namespace SharpLogic.ByteCodeVM.Execution;
 
 public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
 {
-    internal static readonly int[] OpCodeArgumentSizes = new[]
-    {
-        2, //UnValCst
-        2, //UnRefCst
-        5, //UnValCstLgIdx
-        5, //UnRefCstLgIdx
-        1, //UnTrue
-        1, //UnFalse
-        1, //UnNull
-        2, //UnifyReg
-        1, //UnifyEmpty
-        2, //UnifyHead
-        3, //UnifyNth
-        2, //UnifyTail
-        5, //UnifyLen
-
-        2, //StackPxToAy
-        0, //NewEnvironment
-        4, //Goal
-        0, //Proceed
-        0, //Fail
-        0, //SwitchNot
-        3, //GreaterThan
-        3, //LessThan
-        3, //GreaterThanOrEqual
-        3, //LessThanOrEqual
-        3, //Equal
-        3, //NotEqual
-
-        3, //Add
-        3, //Substract
-        3, //Multiply
-        3, //Divide
-        3, //Modulus
-
-        0, //Cut
-        5, //NewVar
-        5, //OfType
-        6, //MbAccess
-    };
-
     private readonly OpCodeExecuteDelegate[] _opCodeExecutes;
     private readonly ValueConstants _valueConstants;
     private readonly ManagedConstants _managedConstants;
-    private readonly (ByteCodeContainer Code,  GetOffsetsDelegate GetOffsets) _factAndRule;
-    private readonly ReadOnlyMemory<byte> _queryCode;
+    private readonly ExecutionCodeContainer _code;
     private readonly List<StackFrame> _environment;
     private readonly Unification _unification;
 
@@ -68,7 +26,7 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
     private bool _firstExecution = true;
     private bool _failed;
 
-    public ByteCodeExecutor(ValueConstants valueConstants, ManagedConstants managedConstants, (ByteCodeContainer Code,  GetOffsetsDelegate GetOffsets) factAndRule, ReadOnlyMemory<byte> queryCode)
+    public ByteCodeExecutor(ValueConstants valueConstants, ManagedConstants managedConstants, ExecutionCodeContainer code)
     {
         _opCodeExecutes = new OpCodeExecuteDelegate[]
         {
@@ -111,8 +69,7 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
 
         _valueConstants = valueConstants;
         _managedConstants = managedConstants;
-        _factAndRule = factAndRule;
-        _queryCode = queryCode;
+        _code = code;
         _environment = new List<StackFrame>();
         _currentStackFrame = new StackFrame(null);
         _unification = new Unification(() => _currentStackFrame);
@@ -128,12 +85,11 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
 
         if (_firstExecution)
         {
-            var factAndRuleCode = _factAndRule.Code.Code.Span;
-            Run(factAndRuleCode.Length, factAndRuleCode, _queryCode.Span);
+            Run(_code.StartPoint);
             _firstExecution = false;
         }
         else if (TryBacktrack(out int p))
-            Run(p, _factAndRule.Code.Code.Span, _queryCode.Span);
+            Run(p);
         else
             return false;
 
@@ -147,23 +103,13 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
 
     public void Dispose() { }
 
-    private void Run(int p, ReadOnlySpan<byte> factAndRuleCode, ReadOnlySpan<byte> queryCode)
+    private void Run(int p)
     {
-        var totalCodeLength = factAndRuleCode.Length + _queryCode.Length;
-        while (p < totalCodeLength)
+        while (p < _code.CodeLength)
         {
-            var code = factAndRuleCode;
-            var realP = p;
-            if (p >= factAndRuleCode.Length)
-            {
-                code = queryCode;
-                realP = p - factAndRuleCode.Length;
-            }
+            var opCode = _code.GetInstruction(p, out var arguments);
 
-            var opCode = code[realP];
-            var argumentsSize = OpCodeArgumentSizes[opCode];
-
-            _opCodeExecutes[opCode](code.Slice(realP + 1, argumentsSize), ref p);
+            _opCodeExecutes[(byte)opCode](arguments, ref p);
 
             if (_failed && !TryBacktrack(out p))
             {
@@ -269,7 +215,7 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
         var functor = (string)_managedConstants.GetConstant(BitConverter.ToInt32(arguments));
         var arity = _currentStackFrame!.Registers.Count;
 
-        var offsets = _factAndRule.GetOffsets(functor, arity);
+        var offsets = _code.GetOffsets(functor, arity);
         var offsetsCount = offsets.Count();
 
         if (offsetsCount == 0)
