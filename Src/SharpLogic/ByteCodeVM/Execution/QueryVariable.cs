@@ -17,26 +17,26 @@ public class QueryVariable
     { 
         get
         {
-            if (!IsBound) throw new SharpLogicException("Variable is unbound.");
+            if (!Instantiated) throw new SharpLogicException("Variable is uninstantiated.");
             return _value;
         }
         private set => _value = value;
     }
 
-    public bool IsBound => _bindStackFrame != null;
+    public bool Instantiated => _bindStackFrame != null;
 
-    public void Bind(object? value, StackFrame currentStackFrame)
+    public void Instantiate(object? value, StackFrame currentStackFrame)
     {
-        if (IsBound) throw new SharpLogicException("Variable already bound.");
+        if (Instantiated) throw new SharpLogicException("Variable already instantiated.");
 
         Value = value;
         _bindStackFrame = currentStackFrame;
 
         if (_equivalentVariables != null)
-            foreach(var v in _equivalentVariables.Where(ev => !ev.IsBound)) v.Bind(value, currentStackFrame);
+            foreach(var v in _equivalentVariables.Where(ev => !ev.Instantiated)) v.Instantiate(value, currentStackFrame);
     }
 
-    public void Unbind(StackFrame stackFrame)
+    public void Uninstantiate(StackFrame stackFrame)
     {
         if (stackFrame == _bindStackFrame)
         {
@@ -44,7 +44,7 @@ public class QueryVariable
             _bindStackFrame = null;
 
             if (_equivalentVariables != null)
-                foreach(var v in _equivalentVariables.Where(ev => ev != this)) v.Unbind(stackFrame);
+                foreach(var v in _equivalentVariables.Where(ev => ev != this)) v.Uninstantiate(stackFrame);
         }
     }
 

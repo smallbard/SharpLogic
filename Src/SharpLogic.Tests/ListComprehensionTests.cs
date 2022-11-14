@@ -1,6 +1,6 @@
 using SharpLogic.ByteCodeVM.Compilation;
 
-namespace SharpLogic;
+namespace SharpLogic.Tests;
 
 
 [TestClass]

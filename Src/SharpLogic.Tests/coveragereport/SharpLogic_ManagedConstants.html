@@ -66,12 +66,12 @@
 <div class="card">
 <div class="card-header">Branch coverage</div>
 <div class="card-body">
-<div class="large cardpercentagebar cardpercentagebar22">77%</div>
+<div class="large cardpercentagebar cardpercentagebar11">88%</div>
 <div class="table">
 <table>
 <tr>
 <th>Covered branches:</th>
-<td class="limit-width right" title="14">14</td>
+<td class="limit-width right" title="16">16</td>
 </tr>
 <tr>
 <th>Total branches:</th>
@@ -79,7 +79,7 @@
 </tr>
 <tr>
 <th>Branch coverage:</th>
-<td class="limit-width right" title="14 of 18">77.7%</td>
+<td class="limit-width right" title="16 of 18">88.8%</td>
 </tr>
 </table>
 </div>
@@ -101,7 +101,7 @@
 <thead><tr><th>Method</th><th>Branch coverage <a href="https://en.wikipedia.org/wiki/Code_coverage"><i class="icon-info-circled"></i></a></th><th>Cyclomatic complexity <a href="https://en.wikipedia.org/wiki/Cyclomatic_complexity"><i class="icon-info-circled"></i></a></th><th>Line coverage <a href="https://en.wikipedia.org/wiki/Code_coverage"><i class="icon-info-circled"></i></a></th></tr></thead>
 <tbody>
 <tr><td title=".ctor(SharpLogic.ByteCodeVM.ManagedConstants)"><a href="#file0_line10" class="navigatetohash">.ctor(...)</a></td><td>100%</td><td>1</td><td>100%</td></tr>
-<tr><td title="AddConstant(object)"><a href="#file0_line18" class="navigatetohash">AddConstant(...)</a></td><td>78.57%</td><td>14</td><td>100%</td></tr>
+<tr><td title="AddConstant(object)"><a href="#file0_line18" class="navigatetohash">AddConstant(...)</a></td><td>92.86%</td><td>14</td><td>100%</td></tr>
 <tr><td title="GetConstant(int)"><a href="#file0_line31" class="navigatetohash">GetConstant(...)</a></td><td>75%</td><td>4</td><td>77.78%</td></tr>
 </tbody>
 </table>
@@ -138,7 +138,7 @@
 <tr class="coverableline" title="Covered (1 visits)" data-coverage="{'AllTestMethods': {'VC': '1', 'LVS': 'green'}}"><td class="green">&nbsp;</td><td class="leftmargin rightmargin right">1</td><td class="rightmargin right"><a id="file0_line24"></a><code>24</code></td><td></td><td class="lightgreen"><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_managedConstants.Add(cst);</code></td></tr>
 <tr class="coverableline" title="Covered (1 visits)" data-coverage="{'AllTestMethods': {'VC': '1', 'LVS': 'green'}}"><td class="green">&nbsp;</td><td class="leftmargin rightmargin right">1</td><td class="rightmargin right"><a id="file0_line25"></a><code>25</code></td><td></td><td class="lightgreen"><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;offsets[cst.GetHashCode()]&nbsp;=&nbsp;_managedConstants.Count&nbsp;-1;</code></td></tr>
 <tr class="" title="Not coverable" data-coverage="{'AllTestMethods': {'VC': '', 'LVS': 'gray'}}"><td class="gray">&nbsp;</td><td class="leftmargin rightmargin right"></td><td class="rightmargin right"><a id="file0_line26"></a><code>26</code></td><td></td><td class="lightgray"><code></code></td></tr>
-<tr class="coverableline" title="Partially covered (1 visits, 2 of 4 branches are covered)" data-coverage="{'AllTestMethods': {'VC': '1', 'LVS': 'orange'}}"><td class="orange">&nbsp;</td><td class="leftmargin rightmargin right">1</td><td class="rightmargin right"><a id="file0_line27"></a><code>27</code></td><td class="percentagebar percentagebar50"><i class="icon-fork"></i></td><td class="lightorange"><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;_managedConstants.Count&nbsp;-1&nbsp;+&nbsp;(_baseConstants&nbsp;==&nbsp;null&nbsp;?&nbsp;0&nbsp;:&nbsp;_baseConstants._managedConstants.Count);</code></td></tr>
+<tr class="coverableline" title="Covered (1 visits, 4 of 4 branches are covered)" data-coverage="{'AllTestMethods': {'VC': '1', 'LVS': 'green'}}"><td class="green">&nbsp;</td><td class="leftmargin rightmargin right">1</td><td class="rightmargin right"><a id="file0_line27"></a><code>27</code></td><td class="percentagebar percentagebar100"><i class="icon-fork"></i></td><td class="lightgreen"><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;_managedConstants.Count&nbsp;-1&nbsp;+&nbsp;(_baseConstants&nbsp;==&nbsp;null&nbsp;?&nbsp;0&nbsp;:&nbsp;_baseConstants._managedConstants.Count);</code></td></tr>
 <tr class="coverableline" title="Covered (1 visits)" data-coverage="{'AllTestMethods': {'VC': '1', 'LVS': 'green'}}"><td class="green">&nbsp;</td><td class="leftmargin rightmargin right">1</td><td class="rightmargin right"><a id="file0_line28"></a><code>28</code></td><td></td><td class="lightgreen"><code>&nbsp;&nbsp;&nbsp;&nbsp;}</code></td></tr>
 <tr class="" title="Not coverable" data-coverage="{'AllTestMethods': {'VC': '', 'LVS': 'gray'}}"><td class="gray">&nbsp;</td><td class="leftmargin rightmargin right"></td><td class="rightmargin right"><a id="file0_line29"></a><code>29</code></td><td></td><td class="lightgray"><code></code></td></tr>
 <tr class="" title="Not coverable" data-coverage="{'AllTestMethods': {'VC': '', 'LVS': 'gray'}}"><td class="gray">&nbsp;</td><td class="leftmargin rightmargin right"></td><td class="rightmargin right"><a id="file0_line30"></a><code>30</code></td><td></td><td class="lightgray"><code>&nbsp;&nbsp;&nbsp;&nbsp;public&nbsp;object&nbsp;GetConstant(int&nbsp;index)</code></td></tr>
@@ -157,7 +157,7 @@
 </tbody>
 </table>
 </div>
-<div class="footer">Generated by: ReportGenerator 5.1.10.0<br />09/11/2022 - 10:49:30<br /><a href="https://github.com/danielpalme/ReportGenerator">GitHub</a> | <a href="http://www.palmmedia.de">www.palmmedia.de</a></div></div>
+<div class="footer">Generated by: ReportGenerator 5.1.10.0<br />14/11/2022 - 18:47:59<br /><a href="https://github.com/danielpalme/ReportGenerator">GitHub</a> | <a href="http://www.palmmedia.de">www.palmmedia.de</a></div></div>
 <div class="containerright">
 <div class="containerrightfixed">
 <h1>Methods/Properties</h1>

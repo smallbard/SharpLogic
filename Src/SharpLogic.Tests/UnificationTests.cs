@@ -44,10 +44,10 @@ public class UnificationTests
     public void UnifyTwoBoundVars(object value1, object value2, bool failed)
     {
         var v1 = new QueryVariable("v1");
-        v1.Bind(value1, _currentStackFrame!);
+        v1.Instantiate(value1, _currentStackFrame!);
 
         var v2 = new QueryVariable("v2");
-        v2.Bind(value2, _currentStackFrame!);
+        v2.Instantiate(value2, _currentStackFrame!);
 
         Assert.AreEqual(failed, _unification!.Unify(new RegisterValue { Value = v1 }, new RegisterValue { Value = v2 }));
     }
@@ -56,7 +56,7 @@ public class UnificationTests
     public void UnifyBoundVarWithUnboundVar()
     {
         var v1 = new QueryVariable("v1");
-        v1.Bind("5", _currentStackFrame!);
+        v1.Instantiate("5", _currentStackFrame!);
 
         var v2 = new QueryVariable("v2");
 
@@ -66,7 +66,7 @@ public class UnificationTests
         v1 = new QueryVariable("v1");
         
         v2 = new QueryVariable("v2");
-        v2.Bind("5", _currentStackFrame!);
+        v2.Instantiate("5", _currentStackFrame!);
 
         Assert.IsFalse(_unification!.Unify(new RegisterValue { Value = v1 }, new RegisterValue { Value = v2 }));
         Assert.AreEqual(v2.Value, v1.Value);
@@ -80,7 +80,7 @@ public class UnificationTests
 
         Assert.IsFalse(_unification!.Unify(new RegisterValue { Value = v1 }, new RegisterValue { Value = v2 }));
 
-        v1.Bind(5, _currentStackFrame!);
+        v1.Instantiate(5, _currentStackFrame!);
         Assert.AreEqual(v1.Value, v2.Value);
     }
 
@@ -103,15 +103,15 @@ public class UnificationTests
         var variable = new QueryVariable("X");
         register = new RegisterValue { Value = variable };
         Assert.IsFalse(_unification!.Unify(value, register));
-        Assert.IsTrue(variable.IsBound);
+        Assert.IsTrue(variable.Instantiated);
         Assert.AreEqual(value, variable.Value);
 
         // Unify to bound variable with expected value
         Assert.IsFalse(_unification!.Unify(value, register));
 
         // Unify to bound variable with unexpected value
-        variable.Unbind(_currentStackFrame!);
-        variable.Bind("unexpected!", _currentStackFrame!);
+        variable.Uninstantiate(_currentStackFrame!);
+        variable.Instantiate("unexpected!", _currentStackFrame!);
         Assert.IsTrue(_unification!.Unify(value, register));
     }
 

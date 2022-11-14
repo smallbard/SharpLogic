@@ -65,6 +65,9 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
             NewVar,
             OfType,
             MbAccess,
+
+            Asserta,
+            Assertz,
     };
 
         _valueConstants = valueConstants;
@@ -88,7 +91,7 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
             Run(_code.StartPoint);
             _firstExecution = false;
         }
-        else if (TryBacktrack(out int p))
+        else if (TryBacktrack(out InstructionPointer p))
             Run(p);
         else
             return false;
@@ -98,14 +101,16 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
 
     public void Reset()
     {
+        _currentStackFrame = new StackFrame(null);
+        _firstExecution = true;
         _environment.Clear();
     }
 
     public void Dispose() { }
 
-    private void Run(int p)
+    private void Run(InstructionPointer p)
     {
-        while (p < _code.CodeLength)
+        while (!InstructionPointer.Invalid.Equals(p))
         {
             var opCode = _code.GetInstruction(p, out var arguments);
 
@@ -121,14 +126,14 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
         }
     }
 
-    private bool TryBacktrack(out int p)
+    private bool TryBacktrack(out InstructionPointer p)
     {
         for (var i = _environment.Count - 1; i >= 0; i--)
         {
             var e = _environment[i];
             if (e.Choices == null)
             {
-                foreach (var variable in e.Registers.GetVariables()) variable.Unbind(e);
+                foreach (var variable in e.Registers.GetVariables()) variable.Uninstantiate(e);
                 _environment.RemoveAt(i);
             }
             else
@@ -138,7 +143,7 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
         if (_environment.Count > 0)
         {
             _currentStackFrame = _environment[_environment.Count - 1];
-            foreach (var variable in _currentStackFrame.Registers.GetVariables()) variable.Unbind(_currentStackFrame);
+            foreach (var variable in _currentStackFrame.Registers.GetVariables()) variable.Uninstantiate(_currentStackFrame);
             var offsets = _currentStackFrame.Choices;
             p = offsets!.Pop();
             if (offsets.Count == 0) _currentStackFrame.Choices = null; 
@@ -148,53 +153,53 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
             return true;
         }
 
-        p = int.MaxValue;
+        p = InstructionPointer.Invalid;
         return false;
     }
 
-    private void UnValCst(ReadOnlySpan<byte> arguments, ref int p)
+    private void UnValCst(ReadOnlySpan<byte> arguments, ref InstructionPointer p)
     {
         _failed = _unification.Unify(_valueConstants.GetConstant(arguments[0]), _currentStackFrame!.Registers[arguments[1]]);
         p+= 1 + arguments.Length;
     }
 
-    private void UnRefCst(ReadOnlySpan<byte> arguments, ref int p)
+    private void UnRefCst(ReadOnlySpan<byte> arguments, ref InstructionPointer p)
     {
         _failed = _unification.Unify(_managedConstants.GetConstant(arguments[0]), _currentStackFrame!.Registers[arguments[1]]);
         p+= 1 + arguments.Length;
     }
 
-    private void UnValCstLgIdx(ReadOnlySpan<byte> arguments, ref int p)
+    private void UnValCstLgIdx(ReadOnlySpan<byte> arguments, ref InstructionPointer p)
     {
         _failed = _unification.Unify(_valueConstants.GetConstant(BitConverter.ToInt32(arguments)), _currentStackFrame!.Registers[arguments[5]]);
         p+= 1 + arguments.Length;
     }
 
-    private void UnRefCstLgIdx(ReadOnlySpan<byte> arguments, ref int p)
+    private void UnRefCstLgIdx(ReadOnlySpan<byte> arguments, ref InstructionPointer p)
     {
         _failed = _unification.Unify(_managedConstants.GetConstant(BitConverter.ToInt32(arguments)), _currentStackFrame!.Registers[arguments[5]]);
         p+= 1 + arguments.Length;
     }
 
-    private void UnTrue(ReadOnlySpan<byte> arguments, ref int p)
+    private void UnTrue(ReadOnlySpan<byte> arguments, ref InstructionPointer p)
     {
         _failed = _unification.Unify(true, _currentStackFrame!.Registers[arguments[0]]);
         p+= 1 + arguments.Length;
     }
 
-    private void UnFalse(ReadOnlySpan<byte> arguments, ref int p)
+    private void UnFalse(ReadOnlySpan<byte> arguments, ref InstructionPointer p)
     {
         _failed = _unification.Unify(false, _currentStackFrame!.Registers[arguments[0]]);
         p+= 1 + arguments.Length;
     }
 
-    private void UnNull(ReadOnlySpan<byte> arguments, ref int p)
+    private void UnNull(ReadOnlySpan<byte> arguments, ref InstructionPointer p)
     {
         _failed = _unification.Unify<object>(null, _currentStackFrame!.Registers[arguments[0]]);
         p+= 1 + arguments.Length;
     }
 
-    private void StackPxToAy(ReadOnlySpan<byte> arguments, ref int p)
+    private void StackPxToAy(ReadOnlySpan<byte> arguments, ref InstructionPointer p)
     {
         var parRegister = _currentStackFrame!.PreviousStackFrame!.Registers[arguments[0]];
         var argRegister = _currentStackFrame!.Registers[arguments[1]];
@@ -202,7 +207,7 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
         p += 1 + arguments.Length;
     }
 
-    private void NewEnvironment(ReadOnlySpan<byte> arguments, ref int p)
+    private void NewEnvironment(ReadOnlySpan<byte> arguments, ref InstructionPointer p)
     {
         _currentStackFrame = new StackFrame(_currentStackFrame);
         _environment.Add(_currentStackFrame);
@@ -210,7 +215,7 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
         p += 1 + arguments.Length;
     }
 
-    private void Goal(ReadOnlySpan<byte> arguments, ref int p)
+    private void Goal(ReadOnlySpan<byte> arguments, ref InstructionPointer p)
     {
         var functor = (string)_managedConstants.GetConstant(BitConverter.ToInt32(arguments));
         var arity = _currentStackFrame!.Registers.Count;
@@ -224,17 +229,17 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
             return;
         }
         else if (offsetsCount > 1)
-            _currentStackFrame!.Choices = new Stack<int>(offsets.Skip(1).Reverse());
+            _currentStackFrame!.Choices = new Stack<InstructionPointer>(offsets.Skip(1).Reverse());
 
         _currentStackFrame!.CP = p + 1 + arguments.Length;
 
         p = offsets.First();
     }
 
-    private void Proceed(ReadOnlySpan<byte> arguments, ref int p)
+    private void Proceed(ReadOnlySpan<byte> arguments, ref InstructionPointer p)
     {
         if (_currentStackFrame.PreviousStackFrame == null)
-            p = int.MaxValue;
+            p = InstructionPointer.Invalid;
         else
         {
             var e = _currentStackFrame;
@@ -243,13 +248,13 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
         }
     }
 
-    private void Fail(ReadOnlySpan<byte> arguments, ref int p)
+    private void Fail(ReadOnlySpan<byte> arguments, ref InstructionPointer p)
     {
         _failed = true;
         p+= 1 + arguments.Length;
     }
 
-    private void SwitchNot(ReadOnlySpan<byte> arguments, ref int p)
+    private void SwitchNot(ReadOnlySpan<byte> arguments, ref InstructionPointer p)
     {
         _failed = _currentStackFrame!.InNegation && !_failed;
 
@@ -257,37 +262,37 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
         p+= 1 + arguments.Length;
     }
 
-    private void GreaterThan(ReadOnlySpan<byte> arguments, ref int p)
+    private void GreaterThan(ReadOnlySpan<byte> arguments, ref InstructionPointer p)
     {
         CompareTo(arguments, ref p, (v1 , v2) => v1 != null && v1 is IComparable c1 && v2 != null && c1.CompareTo(v2) > 0);
     }
 
-    private void LessThan(ReadOnlySpan<byte> arguments, ref int p)
+    private void LessThan(ReadOnlySpan<byte> arguments, ref InstructionPointer p)
     {
         CompareTo(arguments, ref p, (v1 , v2) => v1 != null && v1 is IComparable c1 && v2 != null && c1.CompareTo(v2) < 0);
     }
 
-    private void GreaterThanOrEqual(ReadOnlySpan<byte> arguments, ref int p)
+    private void GreaterThanOrEqual(ReadOnlySpan<byte> arguments, ref InstructionPointer p)
     {
         CompareTo(arguments, ref p, (v1 , v2) => v1 != null && v1 is IComparable c1 && v2 != null && c1.CompareTo(v2) >= 0);
     }
 
-    private void LessThanOrEqual(ReadOnlySpan<byte> arguments, ref int p)
+    private void LessThanOrEqual(ReadOnlySpan<byte> arguments, ref InstructionPointer p)
     {
         CompareTo(arguments, ref p, (v1 , v2) => v1 != null && v1 is IComparable c1 && v2 != null && c1.CompareTo(v2) <= 0);
     }
 
-    private void Equal(ReadOnlySpan<byte> arguments, ref int p)
+    private void Equal(ReadOnlySpan<byte> arguments, ref InstructionPointer p)
     {
         CompareTo(arguments, ref p, (v1, v2) => object.Equals(v1, v2));
     }
 
-    private void NotEqual(ReadOnlySpan<byte> arguments, ref int p)
+    private void NotEqual(ReadOnlySpan<byte> arguments, ref InstructionPointer p)
     {
         CompareTo(arguments, ref p, (v1, v2) => !object.Equals(v1, v2));
     }
 
-    private void CompareTo(ReadOnlySpan<byte> arguments, ref int p, Func<object?, object?, bool> compare)
+    private void CompareTo(ReadOnlySpan<byte> arguments, ref InstructionPointer p, Func<object?, object?, bool> compare)
     {
         var firstOperand = _currentStackFrame!.Registers[arguments[0]];
         var secondOperand = _currentStackFrame!.Registers[arguments[1]];
@@ -302,32 +307,32 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
         p += 1 + arguments.Length;
     }
 
-    private void Add(ReadOnlySpan<byte> arguments, ref int p)
+    private void Add(ReadOnlySpan<byte> arguments, ref InstructionPointer p)
     {
         ArithmeticOp(arguments, ref p, "op_Addition");
     }
 
-    private void Substract(ReadOnlySpan<byte> arguments, ref int p)
+    private void Substract(ReadOnlySpan<byte> arguments, ref InstructionPointer p)
     {
         ArithmeticOp(arguments, ref p, "op_Subtraction");
     }
 
-    private void Multiply(ReadOnlySpan<byte> arguments, ref int p)
+    private void Multiply(ReadOnlySpan<byte> arguments, ref InstructionPointer p)
     { 
         ArithmeticOp(arguments, ref p, "op_Multiply");
     }
 
-    private void Divide(ReadOnlySpan<byte> arguments, ref int p)
+    private void Divide(ReadOnlySpan<byte> arguments, ref InstructionPointer p)
     {
         ArithmeticOp(arguments, ref p, "op_Division");
     }
 
-    private void Modulus(ReadOnlySpan<byte> arguments, ref int p)
+    private void Modulus(ReadOnlySpan<byte> arguments, ref InstructionPointer p)
     {
         ArithmeticOp(arguments, ref p, "op_Modulus");
     }
 
-    private void ArithmeticOp(ReadOnlySpan<byte> arguments, ref int p, string operatorName)
+    private void ArithmeticOp(ReadOnlySpan<byte> arguments, ref InstructionPointer p, string operatorName)
     {
         var firstOperand = _currentStackFrame!.Registers[arguments[0]];
         var secondOperand = _currentStackFrame!.Registers[arguments[1]];
@@ -371,7 +376,7 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
         p += 1 + arguments.Length;
     }
 
-    private void Cut(ReadOnlySpan<byte> arguments, ref int p)
+    private void Cut(ReadOnlySpan<byte> arguments, ref InstructionPointer p)
     {
         var e = _currentStackFrame;
         while (e != null && e.Choices == null) e = e.PreviousStackFrame;
@@ -381,7 +386,7 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
         p += 1 + arguments.Length;
     }
 
-    private void UnifyReg(ReadOnlySpan<byte> arguments, ref int p)
+    private void UnifyReg(ReadOnlySpan<byte> arguments, ref InstructionPointer p)
     {
         var firstRegister = _currentStackFrame.Registers[arguments[0]];
         var secondRegister = _currentStackFrame.Registers[arguments[1]];
@@ -391,7 +396,7 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
         p += 1 + arguments.Length;
     }
 
-    private void UnifyEmpty(ReadOnlySpan<byte> arguments, ref int p)
+    private void UnifyEmpty(ReadOnlySpan<byte> arguments, ref InstructionPointer p)
     {
         var register = _currentStackFrame!.Registers[arguments[0]];
         _failed = _unification.UnifyEmpty(register);
@@ -399,7 +404,7 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
         p += 1 + arguments.Length;
     }
     
-    private void UnifyHead(ReadOnlySpan<byte> arguments, ref int p)
+    private void UnifyHead(ReadOnlySpan<byte> arguments, ref InstructionPointer p)
     {
         var lstRegister = _currentStackFrame!.Registers[arguments[0]];
         var headRegister = _currentStackFrame!.Registers[arguments[1]];
@@ -409,7 +414,7 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
         p += 1 + arguments.Length;
     }
 
-    private void UnifyNth(ReadOnlySpan<byte> arguments, ref int p)
+    private void UnifyNth(ReadOnlySpan<byte> arguments, ref InstructionPointer p)
     {
         var lstRegister = _currentStackFrame!.Registers[arguments[0]];
         var valueRegister = _currentStackFrame!.Registers[arguments[1]];
@@ -419,7 +424,7 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
         p += 1 + arguments.Length;
     }
 
-    private void UnifyTail(ReadOnlySpan<byte> arguments, ref int p)
+    private void UnifyTail(ReadOnlySpan<byte> arguments, ref InstructionPointer p)
     {
         var lstRegister = _currentStackFrame!.Registers[arguments[0]];
         var tailRegister = _currentStackFrame!.Registers[arguments[1]];
@@ -429,7 +434,7 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
         p += 1 + arguments.Length;
     }
 
-    private void UnifyLen(ReadOnlySpan<byte> arguments, ref int p)
+    private void UnifyLen(ReadOnlySpan<byte> arguments, ref InstructionPointer p)
     {
         var length = BitConverter.ToInt32(arguments);
         var lstRegister = _currentStackFrame!.Registers[arguments[4]];
@@ -439,7 +444,7 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
         p += 1 + arguments.Length;
     }
 
-    private void NewVar(ReadOnlySpan<byte> arguments, ref int p)
+    private void NewVar(ReadOnlySpan<byte> arguments, ref InstructionPointer p)
     {
         var register = _currentStackFrame.Registers[arguments[4]];
         register.Value = new QueryVariable((string)_managedConstants.GetConstant(BitConverter.ToInt32(arguments)));
@@ -447,14 +452,14 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
         p += 1 + arguments.Length;
     }
 
-    private void OfType(ReadOnlySpan<byte> arguments, ref int p)
+    private void OfType(ReadOnlySpan<byte> arguments, ref InstructionPointer p)
     {
         var typeHashCode = BitConverter.ToInt32(arguments);
         var register = _currentStackFrame.Registers[arguments[4]];
 
         if (register.Type == RegisterValueType.Unbound)
             _failed = true;
-        else if (register.Type == RegisterValueType.Variable && !((QueryVariable)register.Value!).IsBound)
+        else if (register.Type == RegisterValueType.Variable && !((QueryVariable)register.Value!).Instantiated)
             _failed = true;
 
         _failed = register.RealValue?.GetType().GetHashCode() != typeHashCode;
@@ -462,13 +467,13 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
         p += 1 + arguments.Length;
     }
 
-    private void MbAccess(ReadOnlySpan<byte> arguments, ref int p)
+    private void MbAccess(ReadOnlySpan<byte> arguments, ref InstructionPointer p)
     {
         var memberName = (string)_managedConstants.GetConstant(BitConverter.ToInt32(arguments));
         var objRegister = _currentStackFrame.Registers[arguments[4]];
         var valueRegister  = _currentStackFrame.Registers[arguments[5]];
 
-        if (objRegister.Type == RegisterValueType.Unbound || (objRegister.Type == RegisterValueType.Variable && !((QueryVariable)objRegister.Value!).IsBound))
+        if (objRegister.Type == RegisterValueType.Unbound || (objRegister.Type == RegisterValueType.Variable && !((QueryVariable)objRegister.Value!).Instantiated))
         {
             _failed = true;
             return;
@@ -502,5 +507,37 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
         p += 1 + arguments.Length;
     }
 
-    private delegate void OpCodeExecuteDelegate(ReadOnlySpan<byte> arguments, ref int p);
+    private void Asserta(ReadOnlySpan<byte> arguments, ref InstructionPointer p)
+    {
+        _code.Asserta(CloneAndInstantiate((Term)_managedConstants.GetConstant(BitConverter.ToInt32(arguments))));
+        p += 1 + arguments.Length;
+    }
+
+    private void Assertz(ReadOnlySpan<byte> arguments, ref InstructionPointer p)
+    {
+        _code.Assertz(CloneAndInstantiate((Term)_managedConstants.GetConstant(BitConverter.ToInt32(arguments))));
+        p += 1 + arguments.Length;
+    }
+
+    private Term CloneAndInstantiate(Term t) => t switch
+    {
+        Rule r => new Rule(r.Functor, r.Head.Select(h => CloneAndInstantiate(h)).ToArray(), r.Args.Select(a => CloneAndInstantiate(a)).ToArray()),
+        ListPredicate lp => new ListPredicate(lp.Functor, lp.Args.Select(a => CloneAndInstantiate(a)).ToArray()),
+        Predicate p => new Predicate(p.Functor, p.Args.Select(a => CloneAndInstantiate(a)).ToArray()),
+        _ => new Term(t.Functor, t.Args.Select(a => CloneAndInstantiate(a)).ToArray())
+    };
+
+    private TermValue CloneAndInstantiate(TermValue tv) 
+    {
+        if (tv is Variable v)
+        {
+            var instanciatedVar = _currentStackFrame.Registers.GetVariables().FirstOrDefault(qv => qv.Instantiated && qv.Name == v.VariableName);
+            if (instanciatedVar != null) return new TermValue(instanciatedVar.Value);
+            return new Variable(v.VariableName);
+        }
+
+        return new TermValue(tv.Value);
+    }
+
+    private delegate void OpCodeExecuteDelegate(ReadOnlySpan<byte> arguments, ref InstructionPointer p);
 }

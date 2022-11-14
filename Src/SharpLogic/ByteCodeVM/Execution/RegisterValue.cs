@@ -24,7 +24,7 @@ public class RegisterValue
 
             if (Value is QueryVariable v)
             {
-                if (!v.IsBound) throw new SharpLogicException($"Variable must be bound : '{v.Name}'.");
+                if (!v.Instantiated) throw new SharpLogicException($"Variable must be bound : '{v.Name}'.");
 
                 if (v.Value is ValueTuple<ReadOnlyMemory<byte>, Type> cstVar)
                     return ValueConstants.GetRealValueConstant(cstVar);

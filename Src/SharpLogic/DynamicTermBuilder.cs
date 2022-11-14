@@ -63,6 +63,22 @@ internal class DynamicTermBuilder : DynamicObject, IPredicates
         return p;
     }
 
+    public Predicate Asserta(Term t)
+    {
+        var p = new Predicate(nameof(Asserta), new[] { t });
+        _astBuilder.AddTerm(p);
+
+        return p;
+    }
+
+    public Predicate Assertz(Term t)
+    {
+        var p = new Predicate(nameof(Assertz), new[] { t });
+        _astBuilder.AddTerm(p);
+
+        return p;
+    }
+
     public override bool TryGetMember(GetMemberBinder binder, out object result)
     {
         var name = binder.Name;

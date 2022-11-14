@@ -1,26 +1,24 @@
 using System.Collections;
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
-using System.Runtime.Serialization.Formatters;
-using System.Security.Cryptography;
 
+using SharpLogic.ByteCodeVM;
+using SharpLogic.ByteCodeVM.Compilation;
 using SharpLogic.ByteCodeVM.Execution;
 
-namespace SharpLogic.ByteCodeVM.Compilation;
+namespace SharpLogic;
 
 public class Query<T> : IEnumerable<T>
 {
     private readonly ValueConstants _valueConstants;
     private readonly ManagedConstants _managedConstants;
-    private readonly (ByteCodeContainer Code,  GetOffsetsDelegate GetOffsets) _factAndRule;
+    private readonly KbdCodeContainer _kbdCodeContainer;
     private readonly ByteCodeContainer _queryCode;
     private readonly Dictionary<string, byte> _variables;
 
-    public Query(ValueConstants valueConstants, ManagedConstants managedConstants, (ByteCodeContainer Code,  GetOffsetsDelegate GetOffsets) factAndRule, ByteCodeContainer queryCode)
+    public Query(ValueConstants valueConstants, ManagedConstants managedConstants, KbdCodeContainer codeContainers, ByteCodeContainer queryCode)
     {
         _valueConstants = valueConstants;
         _managedConstants = managedConstants;
-        _factAndRule = factAndRule;
+        _kbdCodeContainer = codeContainers;
         _queryCode = queryCode;
         _variables = new Dictionary<string, byte>();
     }
@@ -38,6 +36,6 @@ public class Query<T> : IEnumerable<T>
 
     private ByteCodeExecutor<T> CompileAndExecute()
     {
-        return new ByteCodeExecutor<T>(_valueConstants, _managedConstants, new ExecutionCodeContainer(_factAndRule, _queryCode.Code));
+        return new ByteCodeExecutor<T>(_valueConstants, _managedConstants, new ExecutionCodeContainer(_kbdCodeContainer, _queryCode.Code, _managedConstants, _valueConstants));
     }
 }

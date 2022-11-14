@@ -47,4 +47,7 @@ public enum OpCode : byte
     NewVar,         // Declare a new variable in a register                         Arg size : 5
     OfType,         // Fail is variable is not of expected OfType                   Arg size : 5
     MbAccess,       // Access to a member of a type                                 Arg size : 6
+
+    Asserta,        //                                                              Arg size : 4
+    Assertz,        //                                                              Arg size : 4
 }

@@ -6,16 +6,16 @@ public class StackFrame
     {
         Registers = new Registers();
         PreviousStackFrame = previousStackFrame;
-        CP = int.MaxValue;
+        CP = InstructionPointer.Invalid;
     }
 
     public StackFrame? PreviousStackFrame { get; init; }
 
     public Registers Registers { get; }
 
-    public int CP { get; set; }
+    public InstructionPointer CP { get; set; }
 
-    public Stack<int>? Choices { get; set; }
+    public Stack<InstructionPointer>? Choices { get; set; }
 
     public bool InNegation { get; set; }
 }

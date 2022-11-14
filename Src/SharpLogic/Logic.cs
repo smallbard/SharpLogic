@@ -1,6 +1,3 @@
-using System.Reflection;
-using System.Reflection.Metadata;
-using System.Runtime.CompilerServices;
 using SharpLogic.ByteCodeVM;
 using SharpLogic.ByteCodeVM.Compilation;
 
@@ -11,7 +8,7 @@ public class Logic
     private readonly ValueConstants _valueConstants = new ValueConstants(null);
     private readonly ManagedConstants _managedConstants = new ManagedConstants(null);
     private readonly Compiler _compiler = new Compiler();
-    private (ByteCodeContainer Code,  GetOffsetsDelegate GetOffsets) _factAndRule;
+    private readonly KbdCodeContainer _kbdCodeContainer;
 
     public Logic(Action<dynamic, IPredicates> termBuilding)
     {
@@ -19,7 +16,8 @@ public class Logic
         var dtb = new DynamicTermBuilder(astBuilder);
         termBuilding(dtb, dtb);
 
-        _factAndRule = _compiler.Compile(astBuilder.Terms, _valueConstants, _managedConstants);
+        var (codeContainer, getOffsets) = _compiler.Compile(astBuilder.Terms, _valueConstants, _managedConstants);
+        _kbdCodeContainer = new KbdCodeContainer((codeContainer.Code.Slice(0, codeContainer.CodeLength), getOffsets));
     }
 
     public Query<T> Query<T>(Action<dynamic, IPredicates> queryBuilder)
@@ -31,7 +29,7 @@ public class Logic
         return new Query<T>(
             new ValueConstants(_valueConstants),
             new ManagedConstants(_managedConstants),
-            _factAndRule,
+            _kbdCodeContainer,
             _compiler.Compile(new[] { new Rule(string.Empty, Array.Empty<TermValue>(), astBuilder.Terms.ToArray()) }, _valueConstants, _managedConstants, true).Code);
     }
 
@@ -44,7 +42,7 @@ public class Logic
         return new Query<object>(
             new ValueConstants(_valueConstants),
             new ManagedConstants(_managedConstants),
-            _factAndRule,
+            _kbdCodeContainer,
             _compiler.Compile(new[] { new Rule(string.Empty, Array.Empty<TermValue>(), astBuilder.Terms.ToArray()) }, _valueConstants, _managedConstants, true).Code).Any();
     }
 }

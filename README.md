@@ -37,7 +37,7 @@ Check the unit tests for more examples.
 
 ### Fact, rule and query definitions
 
-As it can be seen in Logic constructor and in Query method, a method is called with two parameters, named t and p in the examples :
+As it can be seen in _Logic_ constructor and in Query method, a method is called with two parameters, named t and p in the examples :
 
 - t is a dynamic object which lets you express some Prolog like code without prior fake class and method definitions.
 - p is an instance of _IPredicates_. As the name suggests, it gives access to all supported predicates to build rules and queries.
@@ -48,9 +48,11 @@ Loops and other c# constructs can be used to define fact and rules (for example,
 
 ### Execution
 
-Facts, rules and queries are compiled to a byte code and executed by a virtual machine freely inspired by the Warren's Abstract Machine (principles are the same, opcode instructions are not and c# integration definitely impacts the design).
+Facts, rules and queries are compiled to a byte code and executed by a virtual machine freely inspired by the Warren's Abstract Machine : principles are the same, opcode instructions are not and c# integration definitely impacts the design.
 
 Queries are lazy evaluated, so you are free to generate infinite results : next solution is determined when MoveNext is called on the enumerator (queries implement IEnumerable\<T\>).
+
+_Logic_ is thread safe : multiple queries can run at the same time on one instance of _Logic_. Even when dynamic clause assertions are used (_p.Asserta_ and _p.Assertz_).
 
 ## Supported predicates and operators
 
@@ -199,6 +201,14 @@ Console.WriteLine(vm.Query<int>((t, p) => t.last(t.X, new[] { 4, 5, 6 })).FirstO
 ```
 
 For these predicates to work, values must implement _System.Collections.Generics.IEnumerable_.
+
+### Asserta and Assertz
+
+Assert a fact or a rule in the database, either in first position, _p.Asserta_, or in last position, _p.Assertz_. These new elements are then available for all queries.
+
+```csharp
+var vm = new Logic((t, p) => t.newBorn(t.X, p.Assertz(t.born(t.X, DateTime.Now))));
+```
 
 ## Remaining tasks
 

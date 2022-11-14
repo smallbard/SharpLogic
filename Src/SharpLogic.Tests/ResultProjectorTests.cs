@@ -10,9 +10,9 @@ public class ResultProjectorTests
     {
         var stackFrame = new StackFrame(null);
         var v1 = new QueryVariable("Item1");
-        v1.Bind(5, stackFrame);
+        v1.Instantiate(5, stackFrame);
         var v2 = new QueryVariable("Item2");
-        v2.Bind("test", stackFrame);
+        v2.Instantiate("test", stackFrame);
         stackFrame.Registers[0].Value = v2;
         stackFrame.Registers[1].Value = v1;
 
@@ -24,7 +24,7 @@ public class ResultProjectorTests
         Assert.AreEqual("test", s);
 
         var v3 = new QueryVariable("Item3");
-        v3.Bind(2.0, stackFrame);
+        v3.Instantiate(2.0, stackFrame);
         stackFrame.Registers[2].Value = v3;
 
         var projectorTuple3 = new ResultProjector<(int, string, double)>(stackFrame);
@@ -35,7 +35,7 @@ public class ResultProjectorTests
         Assert.AreEqual(2.0, d);
 
         var v4 = new QueryVariable("Item4");
-        v4.Bind('c', stackFrame);
+        v4.Instantiate('c', stackFrame);
         stackFrame.Registers[3].Value = v4;
 
         var projectorTuple4 = new ResultProjector<(int, string, double, char)>(stackFrame);
@@ -47,7 +47,7 @@ public class ResultProjectorTests
         Assert.AreEqual('c', c);
 
         var v5 = new QueryVariable("Item5");
-        v5.Bind(1, stackFrame);
+        v5.Instantiate(1, stackFrame);
         stackFrame.Registers[4].Value = v5;
 
         var projectorTuple5 = new ResultProjector<(int, string, double, char, int)>(stackFrame);
@@ -60,7 +60,7 @@ public class ResultProjectorTests
         Assert.AreEqual(1, i5);
 
         var v6 = new QueryVariable("Item6");
-        v6.Bind(4, stackFrame);
+        v6.Instantiate(4, stackFrame);
         stackFrame.Registers[5].Value = v6;
 
         var projectorTuple6 = new ResultProjector<(int, string, double, char, int, int)>(stackFrame);
@@ -74,7 +74,7 @@ public class ResultProjectorTests
         Assert.AreEqual(4, i8);
 
         var v7 = new QueryVariable("Item7");
-        v7.Bind(3, stackFrame);
+        v7.Instantiate(3, stackFrame);
         stackFrame.Registers[6].Value = v7;
 
         var projectorTuple7 = new ResultProjector<(int, string, double, char, int, int, int)>(stackFrame);
@@ -94,15 +94,15 @@ public class ResultProjectorTests
     {
         var stackFrame = new StackFrame(null);
         var v = new QueryVariable("v");
-        v.Bind("test", stackFrame);
+        v.Instantiate("test", stackFrame);
         stackFrame.Registers[0].Value = v;
 
         var projector = new ResultProjector<string>(stackFrame);
 
         Assert.AreEqual("test", projector.Result);
 
-        v.Unbind(stackFrame);
-        v.Bind(5, stackFrame);
+        v.Uninstantiate(stackFrame);
+        v.Instantiate(5, stackFrame);
 
         Assert.AreEqual("5", projector.Result);
     }
@@ -117,7 +117,7 @@ public class ResultProjectorTests
     {
         var stackFrame = new StackFrame(null);
         var v = new QueryVariable("v");
-        v.Bind(value, stackFrame);
+        v.Instantiate(value, stackFrame);
         stackFrame.Registers[0].Value = v;
 
         var projector = typeof(ResultProjector<>).MakeGenericType(value.GetType()).GetConstructors().First().Invoke(new[] { stackFrame });
@@ -130,7 +130,7 @@ public class ResultProjectorTests
     {
         var stackFrame = new StackFrame(null);
         var v = new QueryVariable("v");
-        v.Bind(3.5m, stackFrame);
+        v.Instantiate(3.5m, stackFrame);
         stackFrame.Registers[0].Value = v;
 
         var projector = new ResultProjector<decimal>(stackFrame);
@@ -143,9 +143,9 @@ public class ResultProjectorTests
     {
         var stackFrame = new StackFrame(null);
         var idVar = new QueryVariable(nameof(TestClass.Id));
-        idVar.Bind(7, stackFrame);
+        idVar.Instantiate(7, stackFrame);
         var nameVar = new QueryVariable(nameof(TestClass.Name));
-        nameVar.Bind("myName", stackFrame);
+        nameVar.Instantiate("myName", stackFrame);
 
         stackFrame.Registers[0].Value = idVar;
         stackFrame.Registers[1].Value = nameVar;
@@ -165,10 +165,10 @@ public class ResultProjectorTests
         var projector = new ResultProjector<TestStruct>(stackFrame);
 
         var idVar = new QueryVariable(nameof(TestStruct.Id));
-        idVar.Bind(7, stackFrame);
+        idVar.Instantiate(7, stackFrame);
 
         var nameVar = new QueryVariable(nameof(TestStruct.Name));
-        nameVar.Bind("myName", stackFrame);
+        nameVar.Instantiate("myName", stackFrame);
 
         stackFrame.Registers[0].Value = idVar;
         stackFrame.Registers[1].Value = nameVar;

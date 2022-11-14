@@ -43,43 +43,55 @@ public class ExecutionCodeContainer
         5, //NewVar
         5, //OfType
         6, //MbAccess
+
+        4, //Asserta
+        4, //Assertz
     };
 
-    private readonly (ByteCodeContainer Code,  GetOffsetsDelegate GetOffsets) _factAndRule;
-    private readonly ReadOnlyMemory<byte> _queryCode;
+    private readonly KbdCodeContainer _kbdCodeContainer;
+    private readonly ManagedConstants _managedConstants;
+    private readonly ValueConstants _valueConstants;
+    private readonly Compiler _compiler;
 
-    public ExecutionCodeContainer((ByteCodeContainer Code,  GetOffsetsDelegate GetOffsets) factAndRule, ReadOnlyMemory<byte> queryCode)
+    public ExecutionCodeContainer(KbdCodeContainer kbdCodeContainer, ReadOnlyMemory<byte> queryCode, ManagedConstants managedConstants, ValueConstants valueConstants)
     {
-        _factAndRule = factAndRule;
-        _queryCode = queryCode;
+        _kbdCodeContainer = kbdCodeContainer;
+        _managedConstants = managedConstants;
+        _valueConstants = valueConstants;
+        _compiler = new Compiler();
 
-        CodeLength = _factAndRule.Code.CodeLength + queryCode.Length;
+        StartPoint = new InstructionPointer { P = 0, Code = queryCode };
     }
 
-    public int StartPoint => _factAndRule.Code.CodeLength;
+    public InstructionPointer StartPoint  { get; }
 
-    public int CodeLength { get; }
-
-    public OpCode GetInstruction(int p, out ReadOnlySpan<byte> arguments)
+    public OpCode GetInstruction(InstructionPointer ip, out ReadOnlySpan<byte> arguments)
     {
-        var code = _factAndRule.Code.Code.Span;
-        var realP = p;
-        if (p >= _factAndRule.Code.CodeLength)
-        {
-            code = _queryCode.Span;
-            realP = p - _factAndRule.Code.CodeLength;
-        }
-
-        var opCode = code[realP];
+        var p = ip.P;
+        var code = ip.Code.Span;
+        
+        var opCode = code[p];
         var argumentsSize = OpCodeArgumentSizes[opCode];
 
-        arguments = argumentsSize == 0 ? Span<byte>.Empty : code.Slice(realP + 1, argumentsSize);
+        arguments = argumentsSize == 0 ? Span<byte>.Empty : code.Slice(p + 1, argumentsSize);
 
         return (OpCode)opCode;
     }
 
-    public IEnumerable<int> GetOffsets(string functor, int arity)
+    public IEnumerable<InstructionPointer> GetOffsets(string functor, int arity)
     {
-        return _factAndRule.GetOffsets(functor, arity);
+        return _kbdCodeContainer.SelectMany(c => c.GetOffsets(functor, arity).Select(p => new InstructionPointer { P = p, Code = c.Code }));
+    }
+
+    public void Asserta(Term t)
+    {
+        var compiled = _compiler.Compile(new[] { t }, _valueConstants, _managedConstants);
+        _kbdCodeContainer.InsertFirst((compiled.Code.Code.Slice(0, compiled.Code.CodeLength), compiled.GetOffsets));
+    }
+
+    public void Assertz(Term t)
+    {
+        var compiled = _compiler.Compile(new[] { t }, _valueConstants, _managedConstants);
+        _kbdCodeContainer.InsertLast((compiled.Code.Code.Slice(0, compiled.Code.CodeLength), compiled.GetOffsets));
     }
 }

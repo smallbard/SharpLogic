@@ -37,7 +37,7 @@ public class Unification
 
     public bool UnifyEmpty(RegisterValue register)
     {
-        if (register.Type == RegisterValueType.Unbound || (register.Type == RegisterValueType.Variable && !((QueryVariable)register.Value!).IsBound))
+        if (register.Type == RegisterValueType.Unbound || (register.Type == RegisterValueType.Variable && !((QueryVariable)register.Value!).Instantiated))
             return true;
 
         var lst = register.RealValue;
@@ -52,7 +52,7 @@ public class Unification
 
     public bool UnifyHead(RegisterValue lstRegister, RegisterValue headRegister)
     {
-        if (lstRegister.Type == RegisterValueType.Unbound || (lstRegister.Type == RegisterValueType.Variable && !((QueryVariable)lstRegister.Value!).IsBound))
+        if (lstRegister.Type == RegisterValueType.Unbound || (lstRegister.Type == RegisterValueType.Variable && !((QueryVariable)lstRegister.Value!).Instantiated))
             return true;
 
         var lst = lstRegister.RealValue;
@@ -70,7 +70,7 @@ public class Unification
 
     public bool UnifyTail(RegisterValue lstRegister, RegisterValue tailRegister)
     {
-        if (lstRegister.Type == RegisterValueType.Unbound || (lstRegister.Type == RegisterValueType.Variable && !((QueryVariable)lstRegister.Value!).IsBound))
+        if (lstRegister.Type == RegisterValueType.Unbound || (lstRegister.Type == RegisterValueType.Variable && !((QueryVariable)lstRegister.Value!).Instantiated))
             return true;
 
         var lst = lstRegister.RealValue;
@@ -85,7 +85,7 @@ public class Unification
 
     public bool UnifyNth(RegisterValue lstRegister, RegisterValue valueRegister, byte n)
     {
-        if (lstRegister.Type == RegisterValueType.Unbound || (lstRegister.Type == RegisterValueType.Variable && !((QueryVariable)lstRegister.Value!).IsBound))
+        if (lstRegister.Type == RegisterValueType.Unbound || (lstRegister.Type == RegisterValueType.Variable && !((QueryVariable)lstRegister.Value!).Instantiated))
             return true;
 
         var lst = lstRegister.RealValue;
@@ -105,7 +105,7 @@ public class Unification
 
     public bool UnifyLen(RegisterValue lstRegister, int length)
     {
-        if (lstRegister.Type == RegisterValueType.Unbound || (lstRegister.Type == RegisterValueType.Variable && !((QueryVariable)lstRegister.Value!).IsBound))
+        if (lstRegister.Type == RegisterValueType.Unbound || (lstRegister.Type == RegisterValueType.Variable && !((QueryVariable)lstRegister.Value!).Instantiated))
             return true;
 
         var lst = lstRegister.RealValue;
@@ -136,11 +136,11 @@ public class Unification
 
     private bool Unify(QueryVariable var1, QueryVariable var2)
     {
-        if (var1.IsBound && !var2.IsBound)
+        if (var1.Instantiated && !var2.Instantiated)
             return Unify<object?>(var2, var1.Value);
-        else if (!var1.IsBound && var2.IsBound)
+        else if (!var1.Instantiated && var2.Instantiated)
             return Unify<object?>(var1, var2.Value);
-        else if (var1.IsBound && var2.IsBound)
+        else if (var1.Instantiated && var2.Instantiated)
             return Unify(var1.Value, var2.Value);
         else
         {
@@ -151,10 +151,10 @@ public class Unification
 
     private bool Unify<TValue>(QueryVariable variable, TValue? value)
     {
-        if (variable.IsBound)
+        if (variable.Instantiated)
             return Unify(value, variable.Value);
         else
-            variable.Bind(value, _getCurrentStackFrame());
+            variable.Instantiate(value, _getCurrentStackFrame());
 
         return false;
     }

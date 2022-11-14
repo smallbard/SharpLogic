@@ -12,11 +12,11 @@ public class QueryVariableTests
     {
         var v = new QueryVariable("v");
 
-        Assert.IsFalse(v.IsBound);
+        Assert.IsFalse(v.Instantiated);
         Assert.ThrowsException<SharpLogicException>(() => v.Value);
 
-        v.Bind(7, _stackFrame);
-        Assert.IsTrue(v.IsBound);
+        v.Instantiate(7, _stackFrame);
+        Assert.IsTrue(v.Instantiated);
         Assert.AreEqual(7, v.Value);
     }
 
@@ -24,16 +24,16 @@ public class QueryVariableTests
     public void Unbind()
     {
         var v = new QueryVariable("v");
-        v.Bind(7, _stackFrame);
+        v.Instantiate(7, _stackFrame);
 
-        v.Unbind(new StackFrame(null));
+        v.Uninstantiate(new StackFrame(null));
 
-        Assert.IsTrue(v.IsBound);
+        Assert.IsTrue(v.Instantiated);
         Assert.AreEqual(7, v.Value);
 
-        v.Unbind(_stackFrame);
+        v.Uninstantiate(_stackFrame);
 
-        Assert.IsFalse(v.IsBound);
+        Assert.IsFalse(v.Instantiated);
         Assert.ThrowsException<SharpLogicException>(() => v.Value);
     }
 
@@ -49,23 +49,23 @@ public class QueryVariableTests
         QueryVariable.MakeEquivalent(v1, v2, _stackFrame);
         QueryVariable.MakeEquivalent(v3, v2, _stackFrame);
 
-        v2.Bind(6, _stackFrame);
+        v2.Instantiate(6, _stackFrame);
 
-        Assert.IsTrue(v1.IsBound);
-        Assert.IsTrue(v2.IsBound);
-        Assert.IsTrue(v3.IsBound);
-        Assert.IsTrue(v4.IsBound);
+        Assert.IsTrue(v1.Instantiated);
+        Assert.IsTrue(v2.Instantiated);
+        Assert.IsTrue(v3.Instantiated);
+        Assert.IsTrue(v4.Instantiated);
 
         Assert.AreEqual(6, v1.Value);
         Assert.AreEqual(6, v2.Value);
         Assert.AreEqual(6, v3.Value);
         Assert.AreEqual(6, v4.Value);
 
-        v3.Unbind(_stackFrame);
+        v3.Uninstantiate(_stackFrame);
 
-        Assert.IsFalse(v1.IsBound);
-        Assert.IsFalse(v2.IsBound);
-        Assert.IsFalse(v3.IsBound);
-        Assert.IsFalse(v4.IsBound);
+        Assert.IsFalse(v1.Instantiated);
+        Assert.IsFalse(v2.Instantiated);
+        Assert.IsFalse(v3.Instantiated);
+        Assert.IsFalse(v4.Instantiated);
     }
 }

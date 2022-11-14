@@ -21,4 +21,8 @@ public interface IPredicates
     ListPredicate Empty { get; }
 
     ListPredicate Tail(object v);
+
+    Predicate Asserta(Term t);
+
+    Predicate Assertz(Term t);
 }

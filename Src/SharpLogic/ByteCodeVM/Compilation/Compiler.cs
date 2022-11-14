@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 using SharpLogic.ByteCodeVM.Execution;
 
@@ -141,9 +142,7 @@ public class Compiler
             }
         }
 
-        var byte4 = context.Byte5.Slice(0, 4);
-        WriteInt(byte4, context.ManagedConstants.AddConstant(goal.Functor));
-        context.Code.AppendOpCode(OpCode.Goal, byte4);
+        context.Code.AppendOpCode(OpCode.Goal, WriteInt(context.Byte5, context.ManagedConstants.AddConstant(goal.Functor)));
 
         return CompilationResult.Success;
     }
@@ -210,9 +209,19 @@ public class Compiler
         { Functor: nameof(IPredicates.Is) } => CompileIs(p, ref context),
         { Functor: nameof(IPredicates.OfType) } => CompileOfType(p, context),
         { Functor: "MemberAccess" } => CompileMemberAccess(p, ref context),
+        { Functor: nameof(IPredicates.Asserta)} => CompileAssert(p, true, ref context),
+        { Functor: nameof(IPredicates.Assertz)} => CompileAssert(p, false, ref context),
 
         _ => CompilationResult.Error($"Unsupported predicate {p.Functor}.")
     };
+
+    private CompilationResult CompileAssert(Predicate p, bool addToStart, ref CompilationContext context)
+    {
+        var termIndex = context.ManagedConstants.AddConstant(p.Args[0]);
+        context.AppendOpCode(addToStart ? OpCode.Asserta : OpCode.Assertz, WriteInt(context.Byte5, termIndex));
+
+        return CompilationResult.Success;
+    }
 
     private CompilationResult CompileListPredicate(ListPredicate p, byte rxIndex, ref CompilationContext context) => p switch
     {
@@ -352,10 +361,7 @@ public class Compiler
 
     private CompilationResult CompileOfType(Predicate p, in CompilationContext context)
     {
-        WriteInt(context.Byte5, (int)p.Args[1].Value!);
-        context.Byte5[4] = GetVariableRegIndex((Variable)p.Args[0], context);
-
-        return context.AppendOpCode(OpCode.OfType, context.Byte5);
+        return context.AppendOpCode(OpCode.OfType, WriteIntByte(context.Byte5, (int)p.Args[1].Value!, GetVariableRegIndex((Variable)p.Args[0], context)));
     }
 
     private CompilationResult CompileMemberAccess(Predicate p, ref CompilationContext context)
@@ -410,12 +416,15 @@ public class Compiler
         return byte5;
     }
 
-    private void WriteInt(Span<byte> bytes, int value)
+    private Span<byte> WriteInt(Span<byte> bytes, int value)
     {
+        var byte4 = bytes.Slice(0, 4);
         if (BitConverter.IsLittleEndian)
-            BinaryPrimitives.WriteInt32LittleEndian(bytes, value);
+            BinaryPrimitives.WriteInt32LittleEndian(byte4, value);
         else
-            BinaryPrimitives.WriteInt32BigEndian(bytes, value);
+            BinaryPrimitives.WriteInt32BigEndian(byte4, value);
+
+        return byte4;
     }
 }
 
