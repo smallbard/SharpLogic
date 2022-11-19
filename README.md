@@ -48,7 +48,7 @@ Loops and other c# constructs can be used to define fact and rules (for example,
 
 ### Execution
 
-Facts, rules and queries are compiled to a byte code and executed by a virtual machine freely inspired by the Warren's Abstract Machine : principles are the same, opcode instructions are not and c# integration definitely impacts the design.
+Facts, rules and queries are compiled to a byte code and executed by a virtual machine freely inspired by the Warren's Abstract Machine : some principles are the same, opcode instructions are not and c# integration definitely impacts the design.
 
 Queries are lazy evaluated, so you are free to generate infinite results : next solution is determined when MoveNext is called on the enumerator (queries implement IEnumerable\<T\>).
 

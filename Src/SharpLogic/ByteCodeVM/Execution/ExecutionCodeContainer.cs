@@ -1,4 +1,5 @@
 using SharpLogic.ByteCodeVM.Compilation;
+using SharpLogic.ByteCodeVM.Indexing;
 
 namespace SharpLogic.ByteCodeVM.Execution;
 
@@ -78,20 +79,20 @@ public class ExecutionCodeContainer
         return (OpCode)opCode;
     }
 
-    public IEnumerable<InstructionPointer> GetOffsets(string functor, int arity)
+    public IEnumerable<InstructionPointer> GetOffsets(string functor, Registers registers)
     {
-        return _kbdCodeContainer.SelectMany(c => c.GetOffsets(functor, arity).Select(p => new InstructionPointer { P = p, Code = c.Code }));
+        return _kbdCodeContainer.SelectMany(c => c.ClausesIndex.GetOffsets(functor, registers).Select(p => new InstructionPointer { P = p, Code = c.Code }));
     }
 
     public void Asserta(Term t)
     {
         var compiled = _compiler.Compile(new[] { t }, _valueConstants, _managedConstants);
-        _kbdCodeContainer.InsertFirst((compiled.Code.Code.Slice(0, compiled.Code.CodeLength), compiled.GetOffsets));
+        _kbdCodeContainer.InsertFirst((compiled.Code.Code.Slice(0, compiled.Code.CodeLength), compiled.ClausesIndex));
     }
 
     public void Assertz(Term t)
     {
         var compiled = _compiler.Compile(new[] { t }, _valueConstants, _managedConstants);
-        _kbdCodeContainer.InsertLast((compiled.Code.Code.Slice(0, compiled.Code.CodeLength), compiled.GetOffsets));
+        _kbdCodeContainer.InsertLast((compiled.Code.Code.Slice(0, compiled.Code.CodeLength), compiled.ClausesIndex));
     }
 }

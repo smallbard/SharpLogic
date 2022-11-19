@@ -1,12 +1,12 @@
+using SharpLogic.ByteCodeVM.Indexing;
+
 namespace SharpLogic.ByteCodeVM.Compilation;
 
 public ref struct CompilationContext
 {
-    private readonly Dictionary<string, Dictionary<int, List<int>>> _functorOffsets;
-
-    public CompilationContext(Dictionary<string, Dictionary<int, List<int>>> functorOffsets, ValueConstants valueConstants, ManagedConstants managedConstants, Span<byte> byte5, bool inQuery)
+    public CompilationContext(ClausesIndex clausesIndex, ValueConstants valueConstants, ManagedConstants managedConstants, Span<byte> byte5, bool inQuery)
     {
-        _functorOffsets = functorOffsets;
+        ClausesIndex = clausesIndex;
         Code = new ByteCodeContainer();
         ValueConstants = valueConstants;
         ManagedConstants = managedConstants;
@@ -17,7 +17,7 @@ public ref struct CompilationContext
 
     public CompilationContext(CompilationContext ctx, Span<byte> byte5)
     {
-        _functorOffsets = ctx._functorOffsets;
+        ClausesIndex = ctx.ClausesIndex;
         Code = ctx.Code;
         ValueConstants = ctx.ValueConstants;
         ManagedConstants = ctx.ManagedConstants;
@@ -29,6 +29,8 @@ public ref struct CompilationContext
     }
 
     public ByteCodeContainer Code { get; }
+
+    public ClausesIndex ClausesIndex { get; }
 
     public ValueConstants ValueConstants { get; }
 
@@ -43,14 +45,6 @@ public ref struct CompilationContext
     public Dictionary<string, byte>? FreeVariables { get; set; }
 
     public int FreeRegister { get; set; }
-
-    public void AddOffset(string functor, int arity)
-    {
-        if (!_functorOffsets.TryGetValue(functor, out var offsetsByArity)) _functorOffsets[functor] = offsetsByArity = new Dictionary<int, List<int>>();
-        if (!offsetsByArity.TryGetValue(arity, out var offsets)) offsetsByArity[arity] = offsets = new List<int>();
-
-        offsets.Add(Code.CodeLength);
-    }
 
     public CompilationResult AppendOpCode(OpCode opCode, Span<byte> arguments)
     {

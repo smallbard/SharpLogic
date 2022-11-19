@@ -2,21 +2,16 @@ using System.Buffers.Binary;
 using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 using SharpLogic.ByteCodeVM.Execution;
+using SharpLogic.ByteCodeVM.Indexing;
 
 namespace SharpLogic.ByteCodeVM.Compilation;
 
 public class Compiler
 {
-    public (ByteCodeContainer Code,  GetOffsetsDelegate GetOffsets) Compile(IEnumerable<Term> terms, ValueConstants valueConstants, ManagedConstants managedConstants, bool inQuery = false)
+    public (ByteCodeContainer Code,  ClausesIndex ClausesIndex) Compile(IEnumerable<Term> terms, ValueConstants valueConstants, ManagedConstants managedConstants, bool inQuery = false)
     {
-        Console.WriteLine("Compilation :");
-
-        var functorOffsets = new Dictionary<string, Dictionary<int, List<int>>>();
-        GetOffsetsDelegate getOffsets = (functor, arity) => 
-            !functorOffsets.TryGetValue(functor, out var arityOffsets) || !arityOffsets.TryGetValue(arity, out var offsets) 
-                ? Enumerable.Empty<int>() : offsets;
-
-        var context = new CompilationContext(functorOffsets, valueConstants, managedConstants, stackalloc byte[5], inQuery);
+        var clausesIndex = new ClausesIndex();
+        var context = new CompilationContext(clausesIndex, valueConstants, managedConstants, stackalloc byte[5], inQuery);
         
         foreach (var term in terms)
         {
@@ -24,7 +19,7 @@ public class Compiler
             if (!result.Succeed) throw new SharpLogicException(result.ErrorMessage!);
         }
 
-        return (context.Code, getOffsets);
+        return (context.Code, clausesIndex);
     }
 
     private CompilationResult Compile(TermValue tv, ref CompilationContext context) => tv switch
@@ -40,7 +35,7 @@ public class Compiler
     private CompilationResult CompileRule(Rule r, ref CompilationContext context)
     {
         context.Head = r.Head;
-        if (!context.InQuery) context.AddOffset(r.Functor, r.Head.Length);
+        if (!context.InQuery) context.ClausesIndex.AddOffset(context.Code.CodeLength, r);
 
         context.FreeRegister = context.Head.Length;
         context.FreeVariables = new Dictionary<string, byte>();
@@ -166,7 +161,7 @@ public class Compiler
         if (t.Args.Any(a => a is Variable || a is ListPredicate)) // body less rule
             return CompileRule(new Rule(t.Functor, t.Args, Array.Empty<TermValue>()), ref context);
 
-        context.AddOffset(t.Functor, t.Args.Length);
+        context.ClausesIndex.AddOffset(context.Code.CodeLength, t);
 
         Span<byte> byte5 = stackalloc byte[5];
 

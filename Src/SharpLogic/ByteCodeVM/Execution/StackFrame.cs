@@ -15,7 +15,7 @@ public class StackFrame
 
     public InstructionPointer CP { get; set; }
 
-    public Stack<InstructionPointer>? Choices { get; set; }
+    public IEnumerator<InstructionPointer>? Choices { get; set; }
 
     public bool InNegation { get; set; }
 }

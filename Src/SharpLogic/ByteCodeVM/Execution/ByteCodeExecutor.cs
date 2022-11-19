@@ -145,8 +145,8 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
             _currentStackFrame = _environment[_environment.Count - 1];
             foreach (var variable in _currentStackFrame.Registers.GetVariables()) variable.Uninstantiate(_currentStackFrame);
             var offsets = _currentStackFrame.Choices;
-            p = offsets!.Pop();
-            if (offsets.Count == 0) _currentStackFrame.Choices = null; 
+            p = offsets!.Current;
+            if (!offsets.MoveNext()) _currentStackFrame.Choices = null;
 
             _failed = false;
 
@@ -218,22 +218,19 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
     private void Goal(ReadOnlySpan<byte> arguments, ref InstructionPointer p)
     {
         var functor = (string)_managedConstants.GetConstant(BitConverter.ToInt32(arguments));
-        var arity = _currentStackFrame!.Registers.Count;
+        var offsets = _code.GetOffsets(functor, _currentStackFrame!.Registers).GetEnumerator();
 
-        var offsets = _code.GetOffsets(functor, arity);
-        var offsetsCount = offsets.Count();
 
-        if (offsetsCount == 0)
+        if (!offsets.MoveNext())
         {
             _failed = true;
             return;
         }
-        else if (offsetsCount > 1)
-            _currentStackFrame!.Choices = new Stack<InstructionPointer>(offsets.Skip(1).Reverse());
 
         _currentStackFrame!.CP = p + 1 + arguments.Length;
+        p = offsets.Current;
 
-        p = offsets.First();
+        if (offsets.MoveNext()) _currentStackFrame!.Choices = offsets;
     }
 
     private void Proceed(ReadOnlySpan<byte> arguments, ref InstructionPointer p)

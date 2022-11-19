@@ -1,5 +1,6 @@
 using SharpLogic.ByteCodeVM;
 using SharpLogic.ByteCodeVM.Compilation;
+using SharpLogic.ByteCodeVM.Indexing;
 
 namespace SharpLogic;
 
