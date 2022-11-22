@@ -4,32 +4,32 @@ namespace SharpLogic.ByteCodeVM.Indexing;
 
 public class ClausesIndex
 {
-    private readonly Dictionary<string, Dictionary<int, List<int>>> _functorOffsets;
+    private readonly Dictionary<string, Dictionary<int, Offsets>> _functorOffsets;
 
     public ClausesIndex()
     {
-        _functorOffsets = new Dictionary<string, Dictionary<int, List<int>>>();
+        _functorOffsets = new Dictionary<string, Dictionary<int, Offsets>>();
     }
 
     public void AddOffset(int offset, Term t)
     {
-        AddOffset(offset, t.Functor, t.Args.Length);
+        AddOffset(offset, t.Functor, t.Args);
     }
 
     public void AddOffset(int offset, Rule r)
     {
-        AddOffset(offset, r.Functor, r.Head.Length);
+        AddOffset(offset, r.Functor, r.Head);
     }
 
     public IEnumerable<int> GetOffsets(string functor, Registers registers) =>
         !_functorOffsets.TryGetValue(functor, out var arityOffsets) || !arityOffsets.TryGetValue(registers.Count, out var offsets)
-            ? Enumerable.Empty<int>() : offsets;
+            ? Enumerable.Empty<int>() : offsets.GetOffsets(registers);
 
-    private void AddOffset(int offset, string functor, int arity)
+    private void AddOffset(int offset, string functor, TermValue[] head)
     {
-        if (!_functorOffsets.TryGetValue(functor, out var offsetsByArity)) _functorOffsets[functor] = offsetsByArity = new Dictionary<int, List<int>>();
-        if (!offsetsByArity.TryGetValue(arity, out var offsets)) offsetsByArity[arity] = offsets = new List<int>();
+        if (!_functorOffsets.TryGetValue(functor, out var offsetsByArity)) _functorOffsets[functor] = offsetsByArity = new Dictionary<int, Offsets>();
+        if (!offsetsByArity.TryGetValue(head.Length, out var offsets)) offsetsByArity[head.Length] = offsets = new Offsets();
 
-        offsets.Add(offset);
+        offsets.AddOffset(offset, head);
     }
 }
