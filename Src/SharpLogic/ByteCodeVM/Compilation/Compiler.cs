@@ -8,10 +8,13 @@ namespace SharpLogic.ByteCodeVM.Compilation;
 
 public class Compiler
 {
-    public (ByteCodeContainer Code,  ClausesIndex ClausesIndex) Compile(IEnumerable<Term> terms, ValueConstants valueConstants, ManagedConstants managedConstants, bool inQuery = false)
+    private delegate CompilationResult GenerateRuleDelegate(ref CompilationContext ctx);
+    private List<GenerateRuleDelegate> _generatedRules = new List<GenerateRuleDelegate>();
+
+    public (ByteCodeContainer Code,  IEnumerable<(int Offset, Term Term)> Offsets) Compile(IEnumerable<Term> terms, ValueConstants valueConstants, ManagedConstants managedConstants, bool inQuery = false)
     {
         var clausesIndex = new ClausesIndex();
-        var context = new CompilationContext(clausesIndex, valueConstants, managedConstants, stackalloc byte[5], inQuery);
+        var context = new CompilationContext(valueConstants, managedConstants, stackalloc byte[5], inQuery);
         
         foreach (var term in terms)
         {
@@ -19,7 +22,7 @@ public class Compiler
             if (!result.Succeed) throw new SharpLogicException(result.ErrorMessage!);
         }
 
-        return (context.Code, clausesIndex);
+        return (context.Code, context.Offsets);
     }
 
     private CompilationResult Compile(TermValue tv, ref CompilationContext context) => tv switch
@@ -35,7 +38,7 @@ public class Compiler
     private CompilationResult CompileRule(Rule r, ref CompilationContext context)
     {
         context.Head = r.Head;
-        if (!context.InQuery) context.ClausesIndex.AddOffset(context.Code.CodeLength, r);
+        if (!context.InQuery) context.Offsets.Add((context.Code.CodeLength, r));
 
         context.FreeRegister = context.Head.Length;
         context.FreeVariables = new Dictionary<string, byte>();
@@ -102,7 +105,15 @@ public class Compiler
             }
         }
 
-        if (!context.InQuery) context.Code.AppendOpCode(OpCode.Proceed, Span<byte>.Empty);
+        context.Code.AppendOpCode(OpCode.Proceed, Span<byte>.Empty);
+
+        var genRules = _generatedRules.ToList();
+        _generatedRules.Clear();
+        foreach (var genRule in genRules)
+        {
+            var cr = genRule(ref context);
+            if (!cr.Succeed) return cr;
+        }
 
         return CompilationResult.Success;
     }
@@ -161,7 +172,7 @@ public class Compiler
         if (t.Args.Any(a => a is Variable || a is ListPredicate)) // body less rule
             return CompileRule(new Rule(t.Functor, t.Args, Array.Empty<TermValue>()), ref context);
 
-        context.ClausesIndex.AddOffset(context.Code.CodeLength, t);
+        context.Offsets.Add((context.Code.CodeLength, t));
 
         Span<byte> byte5 = stackalloc byte[5];
 
@@ -289,12 +300,28 @@ public class Compiler
 
     private CompilationResult CompileNot(Predicate p, ref CompilationContext context)
     {
-        context.Code.AppendOpCode(OpCode.SwitchNot, Span<byte>.Empty);
+        var notArg = (Term)p.Args[0];
+        var ruleName = $"not_{notArg.Functor}/{notArg.Args.Length}_{Guid.NewGuid()}";
         
-        var cr = CompileGoal((Term)p.Args[0], context);
-        if (!cr.Succeed) return cr;
+        _generatedRules.Add((ref CompilationContext ctx) =>
+        {
+            var ctxNotInQuery = new CompilationContext(ctx, false);
 
-        context.Code.AppendOpCode(OpCode.SwitchNot, Span<byte>.Empty);
+            var ruleHead = notArg.Args.Select((a, i) => new Variable($"v{i}")).ToArray();
+            var notRule = new Rule(ruleName, ruleHead, new[] { notArg.CloneWithNewArgs(ruleHead), new Predicate(nameof(IPredicates.Cut), Array.Empty<TermValue>()), new Predicate(nameof(IPredicates.Fail), Array.Empty<TermValue>()) });
+
+            var cr = CompileRule(notRule, ref ctxNotInQuery);
+            if (!cr.Succeed) return cr;
+
+            cr = CompileFact(new Term(ruleName, ruleHead), ref ctxNotInQuery);
+            if (!cr.Succeed) return cr;
+
+            return CompilationResult.Success;
+        });
+
+        // goal
+        var cr = Compile(new Term(ruleName, notArg.Args) { Parent = p.Parent ?? p }, ref context);
+        if (!cr.Succeed) return cr;
 
         return CompilationResult.Success;
     }

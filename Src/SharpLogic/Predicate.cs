@@ -7,4 +7,9 @@ public class Predicate : Term
     {
 
     }
+
+    public override Term CloneWithNewArgs(TermValue[] args)
+    {
+        return new Predicate(Functor, args);
+    }
 }

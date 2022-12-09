@@ -26,12 +26,12 @@ public class QueryVariableTests
         var v = new QueryVariable("v");
         v.Instantiate(7, _stackFrame);
 
-        v.Uninstantiate(new StackFrame(null));
+        new StackFrame(null).UninstantiateVariables();
 
         Assert.IsTrue(v.Instantiated);
         Assert.AreEqual(7, v.Value);
 
-        v.Uninstantiate(_stackFrame);
+        _stackFrame.UninstantiateVariables();
 
         Assert.IsFalse(v.Instantiated);
         Assert.ThrowsException<SharpLogicException>(() => v.Value);
@@ -61,7 +61,7 @@ public class QueryVariableTests
         Assert.AreEqual(6, v3.Value);
         Assert.AreEqual(6, v4.Value);
 
-        v3.Uninstantiate(_stackFrame);
+        _stackFrame.UninstantiateVariables();
 
         Assert.IsFalse(v1.Instantiated);
         Assert.IsFalse(v2.Instantiated);

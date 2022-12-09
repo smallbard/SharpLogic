@@ -9,6 +9,8 @@ public class StackFrame
         CP = InstructionPointer.Invalid;
     }
 
+    public event EventHandler? VariablesUninstantiated;
+
     public StackFrame? PreviousStackFrame { get; init; }
 
     public Registers Registers { get; }
@@ -17,5 +19,8 @@ public class StackFrame
 
     public IEnumerator<InstructionPointer>? Choices { get; set; }
 
-    public bool InNegation { get; set; }
+    public void UninstantiateVariables()
+    {
+        VariablesUninstantiated?.Invoke(this, EventArgs.Empty);
+    }
 }

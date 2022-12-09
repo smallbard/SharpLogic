@@ -1,5 +1,3 @@
-using System.Text;
-
 namespace SharpLogic.ByteCodeVM;
 
 public class ByteCodeContainer
@@ -19,6 +17,8 @@ public class ByteCodeContainer
 
     public void AppendOpCode(OpCode opCode, Span<byte> arguments)
     {
+        //Console.WriteLine($"{_code.Count} {opCode} {string.Join(" ", arguments.ToArray().Select(a => a.ToString()))}");
+
         _code.Add((byte)opCode);
         for (var i = 0; i < arguments.Length; i++) _code.Add(arguments[i]);
     }

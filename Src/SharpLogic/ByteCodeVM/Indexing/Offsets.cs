@@ -1,58 +1,99 @@
+using System.Collections.Concurrent;
+using System.Collections.Immutable;
 using SharpLogic.ByteCodeVM.Execution;
 
 namespace SharpLogic.ByteCodeVM.Indexing;
 
 public class Offsets
 {
-    private List<int> _all = new List<int>();
-    private Dictionary<int, List<int>> _firstEltIndex = new Dictionary<int, List<int>>();
-    private List<int> _nonConstantFirstTerms = new List<int>();
+    private static readonly object _lockFirstEltIndex = new object();
 
-    public void AddOffset(int offset, TermValue[] head)
+    private ImmutableList<InstructionPointer> _all = ImmutableList<InstructionPointer>.Empty;
+    private ConcurrentDictionary<int, ImmutableList<InstructionPointer>> _firstEltIndex = new ConcurrentDictionary<int, ImmutableList<InstructionPointer>>();
+    private ImmutableList<InstructionPointer> _nonConstantFirstTerms = ImmutableList<InstructionPointer>.Empty;
+
+    public void AddOffset(InstructionPointer offset, TermValue[] head, IndexingMode mode)
     {
-        _all.Add(offset);
+        if (mode == IndexingMode.Append)
+            InterlockedAppend(ref _all, offset);
+        else
+            InterlockedInsert(ref _all, offset);
 
         if (head.Length == 0) return;
 
         if (head[0] is Variable || head[0] is Term)
         {
-            if (_nonConstantFirstTerms == null) _nonConstantFirstTerms = new List<int>();
-            _nonConstantFirstTerms.Add(offset);
+            if (mode == IndexingMode.Append)
+                InterlockedAppend(ref _nonConstantFirstTerms, offset);
+            else
+                InterlockedInsert(ref _nonConstantFirstTerms, offset);
         }
         else
         {
             var value = head[0].Value;
             if (value == null) return;
 
-            if (_firstEltIndex == null) _firstEltIndex = new Dictionary<int, List<int>>();
-            if (!_firstEltIndex.TryGetValue(value.GetHashCode(), out var lst)) _firstEltIndex[value.GetHashCode()] = lst = new List<int>();
-
-            lst.Add(offset);
+            if (!_firstEltIndex.TryAdd(value.GetHashCode(), ImmutableList.Create<InstructionPointer>(offset)))
+                lock (_lockFirstEltIndex)
+                {
+                    if (mode == IndexingMode.Append)
+                        _firstEltIndex[value.GetHashCode()] = _firstEltIndex[value.GetHashCode()].Add(offset);
+                    else
+                        _firstEltIndex[value.GetHashCode()] = _firstEltIndex[value.GetHashCode()].Insert(0, offset);
+                }
         }
     }
 
-    public IEnumerable<int> GetOffsets(Registers registers)
+    public IEnumerable<InstructionPointer> GetOffsets(Registers registers)
     {
         if (registers.Count > 0)
         {
-            IEnumerable<int>? offsets = null;
+            IEnumerable<InstructionPointer>? offsets = null;
 
             var firstRegister = registers[0];
             if (firstRegister.Type == RegisterValueType.Constant && firstRegister.Value != null)
             {
-                if (_firstEltIndex.ContainsKey(firstRegister.Value.GetHashCode())) offsets = _firstEltIndex[firstRegister.Value.GetHashCode()];
+                var vhc = GetValueHashCode(firstRegister.Value);
+                if (_firstEltIndex.ContainsKey(vhc)) 
+                    offsets = _firstEltIndex[vhc];
+                else
+                    offsets = Enumerable.Empty<InstructionPointer>();
             }
             else if (firstRegister.Value is QueryVariable v && v.Instantiated && v.Value != null)
             {
-                if (_firstEltIndex.ContainsKey(v.Value.GetHashCode())) offsets = _firstEltIndex[v.Value.GetHashCode()];
+                var vhc = GetValueHashCode(v.Value);
+                if (_firstEltIndex.ContainsKey(vhc)) 
+                    offsets = _firstEltIndex[vhc];
+                else
+                    offsets = Enumerable.Empty<InstructionPointer>();
             }
 
             if (offsets != null && _nonConstantFirstTerms.Count > 0) 
-                return offsets.Union(_nonConstantFirstTerms).OrderBy(o => o);
+                return offsets.Union(_nonConstantFirstTerms).OrderBy(o => _all.IndexOf(o));
             else if (offsets != null)
                 return offsets;
         }
 
         return _all;
+    }
+
+    private int GetValueHashCode(object value)
+    {
+        if (value is ValueTuple<ReadOnlyMemory<byte>, Type> cst)
+            return ValueConstants.GetRealValueConstant(cst).GetHashCode();
+
+        return value.GetHashCode();
+    }
+
+    private void InterlockedInsert<T>(ref ImmutableList<T> lst, T ip)
+    {
+        var l = lst;
+        while(l != Interlocked.CompareExchange(ref lst, l.Insert(0, ip), l)) l = lst;
+    }
+
+    private void InterlockedAppend<T>(ref ImmutableList<T> lst, T ip)
+    {
+        var l = lst;
+        while (l != Interlocked.CompareExchange(ref lst, l.Add(ip), l)) l = lst;
     }
 }

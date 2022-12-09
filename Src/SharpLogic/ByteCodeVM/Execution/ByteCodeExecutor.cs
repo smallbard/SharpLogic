@@ -49,7 +49,6 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
             Goal,
             Proceed,
             Fail,
-            SwitchNot,
             GreaterThan,
             LessThan,
             GreaterThanOrEqual,
@@ -116,13 +115,7 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
 
             _opCodeExecutes[(byte)opCode](arguments, ref p);
 
-            if (_failed && !TryBacktrack(out p))
-            {
-                if (_currentStackFrame?.PreviousStackFrame != null && _currentStackFrame.PreviousStackFrame.InNegation)
-                    Proceed(Span<byte>.Empty, ref p);
-                else
-                    break;
-            } 
+            if (_failed && !TryBacktrack(out p)) break;
         }
     }
 
@@ -133,7 +126,7 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
             var e = _environment[i];
             if (e.Choices == null)
             {
-                foreach (var variable in e.Registers.GetVariables()) variable.Uninstantiate(e);
+                e.UninstantiateVariables();
                 _environment.RemoveAt(i);
             }
             else
@@ -143,7 +136,7 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
         if (_environment.Count > 0)
         {
             _currentStackFrame = _environment[_environment.Count - 1];
-            foreach (var variable in _currentStackFrame.Registers.GetVariables()) variable.Uninstantiate(_currentStackFrame);
+            _currentStackFrame.UninstantiateVariables();
             var offsets = _currentStackFrame.Choices;
             p = offsets!.Current;
             if (!offsets.MoveNext()) _currentStackFrame.Choices = null;
@@ -220,7 +213,6 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
         var functor = (string)_managedConstants.GetConstant(BitConverter.ToInt32(arguments));
         var offsets = _code.GetOffsets(functor, _currentStackFrame!.Registers).GetEnumerator();
 
-
         if (!offsets.MoveNext())
         {
             _failed = true;
@@ -248,14 +240,6 @@ public class ByteCodeExecutor<TResult> : IEnumerator<TResult>
     private void Fail(ReadOnlySpan<byte> arguments, ref InstructionPointer p)
     {
         _failed = true;
-        p+= 1 + arguments.Length;
-    }
-
-    private void SwitchNot(ReadOnlySpan<byte> arguments, ref InstructionPointer p)
-    {
-        _failed = _currentStackFrame!.InNegation && !_failed;
-
-        _currentStackFrame!.InNegation = !_currentStackFrame!.InNegation;
         p+= 1 + arguments.Length;
     }
 

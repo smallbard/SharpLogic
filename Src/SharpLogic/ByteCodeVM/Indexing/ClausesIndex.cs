@@ -1,35 +1,43 @@
+using System.Collections.Concurrent;
 using SharpLogic.ByteCodeVM.Execution;
 
 namespace SharpLogic.ByteCodeVM.Indexing;
 
 public class ClausesIndex
 {
-    private readonly Dictionary<string, Dictionary<int, Offsets>> _functorOffsets;
+    private readonly ConcurrentDictionary<string, ConcurrentDictionary<int, Offsets>> _functorOffsets;
 
     public ClausesIndex()
     {
-        _functorOffsets = new Dictionary<string, Dictionary<int, Offsets>>();
+        _functorOffsets = new ConcurrentDictionary<string, ConcurrentDictionary<int, Offsets>>();
     }
 
-    public void AddOffset(int offset, Term t)
+    public void AddOffsets(IEnumerable<(int Offset, Term Term)> offsets, ReadOnlyMemory<byte> code, IndexingMode mode)
     {
-        AddOffset(offset, t.Functor, t.Args);
+        foreach(var o in offsets)
+            if (o.Term is Rule r)
+                AddOffset(o.Offset, r.Functor, r.Head, code, mode);
+            else
+                AddOffset(o.Offset, o.Term.Functor, o.Term.Args, code, mode);
     }
 
-    public void AddOffset(int offset, Rule r)
-    {
-        AddOffset(offset, r.Functor, r.Head);
-    }
-
-    public IEnumerable<int> GetOffsets(string functor, Registers registers) =>
+    public IEnumerable<InstructionPointer> GetOffsets(string functor, Registers registers) =>
         !_functorOffsets.TryGetValue(functor, out var arityOffsets) || !arityOffsets.TryGetValue(registers.Count, out var offsets)
-            ? Enumerable.Empty<int>() : offsets.GetOffsets(registers);
+            ? Enumerable.Empty<InstructionPointer>() : offsets.GetOffsets(registers);
 
-    private void AddOffset(int offset, string functor, TermValue[] head)
+    private void AddOffset(int offset, string functor, TermValue[] head, ReadOnlyMemory<byte> code, IndexingMode mode)
     {
-        if (!_functorOffsets.TryGetValue(functor, out var offsetsByArity)) _functorOffsets[functor] = offsetsByArity = new Dictionary<int, Offsets>();
+        //Console.WriteLine($"======= {functor}/{head.Length} {offset} =======");
+
+        if (!_functorOffsets.TryGetValue(functor, out var offsetsByArity)) _functorOffsets[functor] = offsetsByArity = new ConcurrentDictionary<int, Offsets>();
         if (!offsetsByArity.TryGetValue(head.Length, out var offsets)) offsetsByArity[head.Length] = offsets = new Offsets();
 
-        offsets.AddOffset(offset, head);
+        offsets.AddOffset(new InstructionPointer { P = offset, Code = code }, head, mode);
     }
+}
+
+public enum IndexingMode
+{
+    Append,
+    Insert
 }

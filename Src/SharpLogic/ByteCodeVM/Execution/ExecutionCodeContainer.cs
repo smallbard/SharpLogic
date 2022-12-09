@@ -26,7 +26,6 @@ public class ExecutionCodeContainer
         4, //Goal
         0, //Proceed
         0, //Fail
-        0, //SwitchNot
         3, //GreaterThan
         3, //LessThan
         3, //GreaterThanOrEqual
@@ -49,14 +48,14 @@ public class ExecutionCodeContainer
         4, //Assertz
     };
 
-    private readonly KbdCodeContainer _kbdCodeContainer;
+    private readonly ClausesIndex _clausesIndex;
     private readonly ManagedConstants _managedConstants;
     private readonly ValueConstants _valueConstants;
     private readonly Compiler _compiler;
 
-    public ExecutionCodeContainer(KbdCodeContainer kbdCodeContainer, ReadOnlyMemory<byte> queryCode, ManagedConstants managedConstants, ValueConstants valueConstants)
+    public ExecutionCodeContainer(ClausesIndex clausesIndex, ReadOnlyMemory<byte> queryCode, ManagedConstants managedConstants, ValueConstants valueConstants)
     {
-        _kbdCodeContainer = kbdCodeContainer;
+        _clausesIndex = clausesIndex;
         _managedConstants = managedConstants;
         _valueConstants = valueConstants;
         _compiler = new Compiler();
@@ -81,18 +80,22 @@ public class ExecutionCodeContainer
 
     public IEnumerable<InstructionPointer> GetOffsets(string functor, Registers registers)
     {
-        return _kbdCodeContainer.SelectMany(c => c.ClausesIndex.GetOffsets(functor, registers).Select(p => new InstructionPointer { P = p, Code = c.Code }));
+        return _clausesIndex.GetOffsets(functor, registers);
     }
 
     public void Asserta(Term t)
     {
-        var compiled = _compiler.Compile(new[] { t }, _valueConstants, _managedConstants);
-        _kbdCodeContainer.InsertFirst((compiled.Code.Code.Slice(0, compiled.Code.CodeLength), compiled.ClausesIndex));
+        var (codeContainer, offsets) = _compiler.Compile(new[] { t }, _valueConstants, _managedConstants);
+        var code = codeContainer.Code.Slice(0, codeContainer.CodeLength);
+
+        _clausesIndex.AddOffsets(offsets, code, IndexingMode.Insert);
     }
 
     public void Assertz(Term t)
     {
-        var compiled = _compiler.Compile(new[] { t }, _valueConstants, _managedConstants);
-        _kbdCodeContainer.InsertLast((compiled.Code.Code.Slice(0, compiled.Code.CodeLength), compiled.ClausesIndex));
+        var (codeContainer, offsets) = _compiler.Compile(new[] { t }, _valueConstants, _managedConstants);
+        var code = codeContainer.Code.Slice(0, codeContainer.CodeLength);
+
+        _clausesIndex.AddOffsets(offsets, code, IndexingMode.Append);
     }
 }

@@ -26,7 +26,6 @@ public enum OpCode : byte
     Proceed,
 
     Fail,
-    SwitchNot,
 
     // Comparison
     GreaterThan,

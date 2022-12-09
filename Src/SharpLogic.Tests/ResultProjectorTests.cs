@@ -101,7 +101,7 @@ public class ResultProjectorTests
 
         Assert.AreEqual("test", projector.Result);
 
-        v.Uninstantiate(stackFrame);
+        stackFrame.UninstantiateVariables();
         v.Instantiate(5, stackFrame);
 
         Assert.AreEqual("5", projector.Result);

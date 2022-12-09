@@ -1,23 +1,23 @@
+using System.ComponentModel.DataAnnotations.Schema;
 using SharpLogic.ByteCodeVM.Indexing;
 
 namespace SharpLogic.ByteCodeVM.Compilation;
 
 public ref struct CompilationContext
 {
-    public CompilationContext(ClausesIndex clausesIndex, ValueConstants valueConstants, ManagedConstants managedConstants, Span<byte> byte5, bool inQuery)
+    public CompilationContext(ValueConstants valueConstants, ManagedConstants managedConstants, Span<byte> byte5, bool inQuery)
     {
-        ClausesIndex = clausesIndex;
         Code = new ByteCodeContainer();
         ValueConstants = valueConstants;
         ManagedConstants = managedConstants;
         Byte5 = byte5;
         InQuery = inQuery;
         Head = Array.Empty<TermValue>();
+        Offsets = new List<(int Offset, Term Term)>();
     }
 
     public CompilationContext(CompilationContext ctx, Span<byte> byte5)
     {
-        ClausesIndex = ctx.ClausesIndex;
         Code = ctx.Code;
         ValueConstants = ctx.ValueConstants;
         ManagedConstants = ctx.ManagedConstants;
@@ -26,11 +26,18 @@ public ref struct CompilationContext
         FreeVariables = ctx.FreeVariables;
         FreeRegister = ctx.FreeRegister;
         InQuery = ctx.InQuery;
+        Offsets = ctx.Offsets;
+    }
+
+    public CompilationContext(CompilationContext ctx, bool inQuery)
+        : this(ctx, ctx.Byte5)
+    {
+        InQuery = inQuery;
     }
 
     public ByteCodeContainer Code { get; }
 
-    public ClausesIndex ClausesIndex { get; }
+    public List<(int Offset, Term Term)> Offsets { get; }
 
     public ValueConstants ValueConstants { get; }
 

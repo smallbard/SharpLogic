@@ -15,6 +15,11 @@ public class Term : TermValue
 
     public TermValue[] Args{ get; init; }
 
+    public virtual Term CloneWithNewArgs(TermValue[] args)
+    {
+        return new Term(Functor, args);
+    }
+
     public override string ToString()
     {
         return $"{Functor}/{Args.Length}";

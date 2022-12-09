@@ -110,7 +110,7 @@ public class UnificationTests
         Assert.IsFalse(_unification!.Unify(value, register));
 
         // Unify to bound variable with unexpected value
-        variable.Uninstantiate(_currentStackFrame!);
+        _currentStackFrame!.UninstantiateVariables();
         variable.Instantiate("unexpected!", _currentStackFrame!);
         Assert.IsTrue(_unification!.Unify(value, register));
     }

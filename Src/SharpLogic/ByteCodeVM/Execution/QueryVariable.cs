@@ -34,18 +34,12 @@ public class QueryVariable
 
         if (_equivalentVariables != null)
             foreach(var v in _equivalentVariables.Where(ev => !ev.Instantiated)) v.Instantiate(value, currentStackFrame);
-    }
 
-    public void Uninstantiate(StackFrame stackFrame)
-    {
-        if (stackFrame == _bindStackFrame)
+        currentStackFrame.VariablesUninstantiated += (s, a) =>
         {
             Value = null;
             _bindStackFrame = null;
-
-            if (_equivalentVariables != null)
-                foreach(var v in _equivalentVariables.Where(ev => ev != this)) v.Uninstantiate(stackFrame);
-        }
+        };
     }
 
     public static void MakeEquivalent(QueryVariable v1, QueryVariable v2, StackFrame currentStackFrame)
